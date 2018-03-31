@@ -2,6 +2,8 @@ package cpu
 
 import (
 	"fmt"
+
+	"github.com/bovarysme/bmo/mmu"
 )
 
 var cycles = [...]int{
@@ -41,22 +43,20 @@ type CPU struct {
 	pc     uint16
 	cycles int
 
-	rom []byte
+	mmu *mmu.MMU
 }
 
-func NewCPU(rom []byte) *CPU {
+func NewCPU(mmu *mmu.MMU) *CPU {
 	return &CPU{
 		pc: 0x100,
 
-		rom: rom,
+		mmu: mmu,
 	}
 }
 
 func (c *CPU) Run() error {
-	fmt.Printf("ROM size: %d bytes\n", len(c.rom))
-
 	for {
-		opcode := c.rom[c.pc]
+		opcode := c.mmu.ReadByte(c.pc)
 		c.pc++
 
 		err := c.Decode(opcode)
@@ -97,10 +97,6 @@ func (c *CPU) Decode(opcode byte) error {
 	return nil
 }
 
-func (c *CPU) ReadWord(address uint16) uint16 {
-	return uint16(c.rom[address+1])<<8 | uint16(c.rom[address])
-}
-
 func (c *CPU) nop() {
 
 }
@@ -114,5 +110,5 @@ func (c *CPU) xor(value byte) {
 }
 
 func (c *CPU) jp() {
-	c.pc = c.ReadWord(c.pc)
+	c.pc = c.mmu.ReadWord(c.pc)
 }
