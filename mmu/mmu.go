@@ -17,3 +17,7 @@ func (m *MMU) ReadByte(address uint16) byte {
 func (m *MMU) ReadWord(address uint16) uint16 {
 	return uint16(m.rom[address+1])<<8 | uint16(m.rom[address])
 }
+
+func (m *MMU) WriteByte(address uint16, value byte) {
+
+}

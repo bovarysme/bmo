@@ -96,6 +96,8 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x06, 0x0e, 0x16, 0x1e, 0x26, 0x2e, 0x3e:
 		pointer := c.getDestRegister(opcode)
 		c.ld8(pointer)
+	case 0x32:
+		c.ldhld()
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf:
 		pointer := c.getSourceRegister(opcode)
 		c.xor(*pointer)
@@ -173,6 +175,15 @@ func (c *CPU) ld16(high, low *byte) {
 
 func (c *CPU) ld8(register *byte) {
 	*register = c.fetch()
+}
+
+func (c *CPU) ldhld() {
+	address := uint16(c.h)<<8 | uint16(c.l)
+	c.mmu.WriteByte(address, c.a)
+
+	address--
+	c.h = byte(address >> 8)
+	c.l = byte(address & 0xff)
 }
 
 func (c *CPU) xor(value byte) {
