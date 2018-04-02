@@ -93,6 +93,9 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x01, 0x11, 0x21:
 		high, low := c.getRegisterPair(opcode)
 		c.ld16(high, low)
+	case 0x05, 0x0d, 0x15, 0x1d, 0x25, 0x2d, 0x3d:
+		pointer := c.getDestRegister(opcode)
+		c.dec(pointer)
 	case 0x06, 0x0e, 0x16, 0x1e, 0x26, 0x2e, 0x3e:
 		pointer := c.getDestRegister(opcode)
 		c.ld8(pointer)
@@ -171,6 +174,19 @@ func (c *CPU) nop() {
 func (c *CPU) ld16(high, low *byte) {
 	*low = c.fetch()
 	*high = c.fetch()
+}
+
+func (c *CPU) dec(register *byte) {
+	*register--
+
+	c.resetFlags(zero | halfCarry)
+	c.setFlags(substract)
+
+	if *register == 0 {
+		c.setFlags(zero)
+	} else if *register == 0xff {
+		c.setFlags(halfCarry)
+	}
 }
 
 func (c *CPU) ld8(register *byte) {
