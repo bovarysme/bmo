@@ -99,6 +99,9 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x06, 0x0e, 0x16, 0x1e, 0x26, 0x2e, 0x3e:
 		pointer := c.getDestRegister(opcode)
 		c.ld8(pointer)
+	case 0x20, 0x28, 0x30, 0x38:
+		condition := c.getCondition(opcode)
+		c.jr(condition)
 	case 0x32:
 		c.ldhld()
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf:
@@ -113,6 +116,21 @@ func (c *CPU) decode(opcode byte) error {
 	c.cycles += cycles[opcode]
 
 	return nil
+}
+
+func (c *CPU) getCondition(opcode byte) bool {
+	switch opcode >> 3 & 0x3 {
+	case 0:
+		return c.f&zero == 0
+	case 1:
+		return c.f&zero == zero
+	case 2:
+		return c.f&carry == 0
+	case 3:
+		return c.f&carry == carry
+	}
+
+	return false
 }
 
 func (c *CPU) getRegister(code byte) *byte {
@@ -193,6 +211,17 @@ func (c *CPU) ld8(register *byte) {
 	*register = c.fetch()
 }
 
+// XXX
+func (c *CPU) jr(condition bool) {
+	steps := int8(c.fetch()) - 126
+
+	if condition {
+		c.cycles++
+
+		c.pc = uint16(int16(c.pc) + int16(steps))
+	}
+}
+
 func (c *CPU) ldhld() {
 	address := uint16(c.h)<<8 | uint16(c.l)
 	c.mmu.WriteByte(address, c.a)
@@ -205,7 +234,6 @@ func (c *CPU) ldhld() {
 func (c *CPU) xor(value byte) {
 	c.a ^= value
 
-	// XXX: modifying the zero flag twice
 	c.resetFlags(zero | substract | halfCarry | carry)
 	if c.a == 0 {
 		c.setFlags(zero)
