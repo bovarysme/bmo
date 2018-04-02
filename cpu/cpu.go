@@ -51,7 +51,10 @@ type CPU struct {
 	h byte
 	l byte
 
-	pc     uint16
+	pc uint16
+
+	interrupts bool
+
 	cycles int
 
 	mmu *mmu.MMU
@@ -68,7 +71,7 @@ func NewCPU(mmu *mmu.MMU) *CPU {
 func (c *CPU) Run() error {
 	for {
 		opcode := c.fetch()
-		fmt.Printf("opcode: %#x\n%#v\n", opcode, c)
+		fmt.Printf("opcode: %#x\n%#v\n\n", opcode, c)
 
 		err := c.decode(opcode)
 		if err != nil {
@@ -106,12 +109,18 @@ func (c *CPU) decode(opcode byte) error {
 		condition := c.getCondition(opcode)
 		c.jr(condition)
 	case 0x32:
-		c.ldhld()
+		c.ldd()
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf:
 		pointer := c.getSourceRegister(opcode)
 		c.xor(*pointer)
 	case 0xc3:
 		c.jp()
+	case 0xe0:
+		c.ldh()
+	case 0xf3:
+		c.di()
+	case 0xfb:
+		c.ei()
 	default:
 		return &UnknownOpcodeError{opcode: opcode}
 	}
@@ -224,18 +233,19 @@ func (c *CPU) ld8(register *byte) {
 	*register = c.fetch()
 }
 
-// XXX
 func (c *CPU) jr(condition bool) {
-	steps := int8(c.fetch()) - 126
+	// XXX: [-128; 127] when the docs say [-127; 129]
+	steps := int8(c.fetch())
 
 	if condition {
 		c.cycles++
 
+		// XXX
 		c.pc = uint16(int16(c.pc) + int16(steps))
 	}
 }
 
-func (c *CPU) ldhld() {
+func (c *CPU) ldd() {
 	address := uint16(c.h)<<8 | uint16(c.l)
 	c.mmu.WriteByte(address, c.a)
 
@@ -255,4 +265,17 @@ func (c *CPU) xor(value byte) {
 
 func (c *CPU) jp() {
 	c.pc = c.mmu.ReadWord(c.pc)
+}
+
+func (c *CPU) ldh() {
+	address := 0xff00 + uint16(c.fetch())
+	c.mmu.WriteByte(address, c.a)
+}
+
+func (c *CPU) di() {
+	c.interrupts = false
+}
+
+func (c *CPU) ei() {
+	c.interrupts = true
 }
