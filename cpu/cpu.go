@@ -67,10 +67,9 @@ func NewCPU(mmu *mmu.MMU) *CPU {
 
 func (c *CPU) Run() error {
 	for {
-		opcode := c.mmu.ReadByte(c.pc)
-		c.pc++
+		opcode := c.fetch()
 
-		err := c.Decode(opcode)
+		err := c.decode(opcode)
 		if err != nil {
 			return err
 		}
@@ -79,10 +78,20 @@ func (c *CPU) Run() error {
 	return nil
 }
 
-func (c *CPU) Decode(opcode byte) error {
+func (c *CPU) fetch() byte {
+	value := c.mmu.ReadByte(c.pc)
+	c.pc++
+
+	return value
+}
+
+func (c *CPU) decode(opcode byte) error {
 	switch opcode {
 	case 0x00:
 		c.nop()
+	case 0x01, 0x11, 0x21:
+		high, low := c.getRegisterPair(opcode)
+		c.ld16(high, low)
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf:
 		pointer := c.getRegister(opcode)
 		c.xor(*pointer)
@@ -118,6 +127,19 @@ func (c *CPU) getRegister(opcode byte) *byte {
 	return nil
 }
 
+func (c *CPU) getRegisterPair(opcode byte) (*byte, *byte) {
+	switch opcode >> 4 & 0x3 {
+	case 0:
+		return &c.b, &c.c
+	case 1:
+		return &c.d, &c.e
+	case 2:
+		return &c.h, &c.l
+	}
+
+	return nil, nil
+}
+
 func (c *CPU) setFlags(value byte) {
 	c.f |= value
 }
@@ -128,6 +150,11 @@ func (c *CPU) resetFlags(value byte) {
 
 func (c *CPU) nop() {
 
+}
+
+func (c *CPU) ld16(high, low *byte) {
+	*low = c.fetch()
+	*high = c.fetch()
 }
 
 func (c *CPU) xor(value byte) {
