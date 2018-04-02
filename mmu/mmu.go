@@ -7,8 +7,8 @@ const (
 	RAM         = 0xc000
 	Forbidden   = 0xe000
 	OAMRAM      = 0xfe00
-	IO          = 0xff00
 	Unused      = 0xfea0
+	IO          = 0xff00
 	HRAM        = 0xff80
 	RAMSize     = 0xffff
 )
@@ -40,9 +40,9 @@ func (m *MMU) ReadByte(address uint16) byte {
 		return m.ExternalRAM[address-ExternalRAM]
 	} else if address >= RAM && address < Forbidden {
 		return m.RAM[address-RAM]
-	} else if address >= OAMRAM && address < IO {
+	} else if address >= OAMRAM && address < Unused {
 		return m.OAMRAM[address-OAMRAM]
-	} else if address >= IO && address <= Unused {
+	} else if address >= IO && address < HRAM {
 		return m.IO[address-IO]
 	} else if address >= HRAM && address <= RAMSize {
 		return m.HRAM[address-HRAM]
@@ -55,6 +55,9 @@ func (m *MMU) ReadWord(address uint16) uint16 {
 	return uint16(m.ReadByte(address+1))<<8 | uint16(m.ReadByte(address))
 }
 
+// XXX
 func (m *MMU) WriteByte(address uint16, value byte) {
-
+	if address >= IO && address < HRAM {
+		m.IO[address-IO] = value
+	}
 }
