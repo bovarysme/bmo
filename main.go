@@ -6,6 +6,7 @@ import (
 
 	"github.com/bovarysme/bmo/cpu"
 	"github.com/bovarysme/bmo/mmu"
+	"github.com/bovarysme/bmo/ppu"
 )
 
 func main() {
@@ -19,8 +20,14 @@ func main() {
 	m := mmu.NewMMU(rom)
 
 	c := cpu.NewCPU(m)
-	err = c.Run()
-	if err != nil {
-		log.Fatal(err)
+	p := ppu.NewPPU(m)
+
+	for {
+		err = c.Step()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		p.Step()
 	}
 }

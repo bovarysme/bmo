@@ -6,8 +6,9 @@ import (
 	"github.com/bovarysme/bmo/mmu"
 )
 
+// CPU flags' masks
 const (
-	carry byte = 1 << (iota + 4)
+	carry byte = 1 << (4 + iota)
 	halfCarry
 	substract
 	zero
@@ -51,6 +52,7 @@ type CPU struct {
 	h byte
 	l byte
 
+	// Program counter
 	pc uint16
 
 	interrupts bool
@@ -68,18 +70,13 @@ func NewCPU(mmu *mmu.MMU) *CPU {
 	}
 }
 
-func (c *CPU) Run() error {
-	for {
-		opcode := c.fetch()
-		fmt.Printf("opcode: %#x\n%#v\n\n", opcode, c)
+func (c *CPU) Step() error {
+	opcode := c.fetch()
+	fmt.Printf("opcode: %#x\n%#v\n\n", opcode, c)
 
-		err := c.decode(opcode)
-		if err != nil {
-			return err
-		}
-	}
+	err := c.decode(opcode)
 
-	return nil
+	return err
 }
 
 func (c *CPU) fetch() byte {
@@ -113,7 +110,7 @@ func (c *CPU) decode(opcode byte) error {
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf:
 		pointer := c.getSourceRegister(opcode)
 		c.xor(*pointer)
-	case 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbf, 0xbe:
+	case 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbf, 0xfe:
 		var value byte
 		if opcode == 0xfe {
 			value = c.fetch()
