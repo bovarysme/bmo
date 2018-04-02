@@ -83,20 +83,9 @@ func (c *CPU) Decode(opcode byte) error {
 	switch opcode {
 	case 0x00:
 		c.nop()
-	case 0xa8:
-		c.xor(c.b)
-	case 0xa9:
-		c.xor(c.c)
-	case 0xaa:
-		c.xor(c.d)
-	case 0xab:
-		c.xor(c.e)
-	case 0xac:
-		c.xor(c.h)
-	case 0xad:
-		c.xor(c.l)
-	case 0xaf:
-		c.xor(c.a)
+	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf:
+		pointer := c.getRegister(opcode)
+		c.xor(*pointer)
 	case 0xc3:
 		c.jp()
 	default:
@@ -104,6 +93,27 @@ func (c *CPU) Decode(opcode byte) error {
 	}
 
 	c.cycles += cycles[opcode]
+
+	return nil
+}
+
+func (c *CPU) getRegister(opcode byte) *byte {
+	switch opcode & 0x7 {
+	case 0:
+		return &c.b
+	case 1:
+		return &c.c
+	case 2:
+		return &c.d
+	case 3:
+		return &c.e
+	case 4:
+		return &c.h
+	case 5:
+		return &c.l
+	case 7:
+		return &c.a
+	}
 
 	return nil
 }
@@ -123,6 +133,7 @@ func (c *CPU) nop() {
 func (c *CPU) xor(value byte) {
 	c.a ^= value
 
+	// XXX: modifying the zero flag twice
 	c.resetFlags(zero | substract | halfCarry | carry)
 	if c.a == 0 {
 		c.setFlags(zero)
