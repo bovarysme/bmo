@@ -6,6 +6,13 @@ import (
 	"github.com/bovarysme/bmo/mmu"
 )
 
+const (
+	carry byte = 1 << (iota + 4)
+	halfCarry
+	substract
+	zero
+)
+
 var cycles = [...]int{
 	1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1, // 0x0
 	1, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1, // 0x1
@@ -36,6 +43,7 @@ func (e UnknownOpcodeError) Error() string {
 type CPU struct {
 	// Registers
 	a byte
+	f byte
 	b byte
 	c byte
 	d byte
@@ -100,6 +108,14 @@ func (c *CPU) Decode(opcode byte) error {
 	return nil
 }
 
+func (c *CPU) setFlags(value byte) {
+	c.f |= value
+}
+
+func (c *CPU) resetFlags(value byte) {
+	c.f &^= value
+}
+
 func (c *CPU) nop() {
 
 }
@@ -107,8 +123,9 @@ func (c *CPU) nop() {
 func (c *CPU) xor(value byte) {
 	c.a ^= value
 
+	c.resetFlags(zero | substract | halfCarry | carry)
 	if c.a == 0 {
-		// TODO: handle flags
+		c.setFlags(zero)
 	}
 }
 
