@@ -113,9 +113,20 @@ func (c *CPU) decode(opcode byte) error {
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf:
 		pointer := c.getSourceRegister(opcode)
 		c.xor(*pointer)
+	case 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbf, 0xbe:
+		var value byte
+		if opcode == 0xfe {
+			value = c.fetch()
+		} else {
+			value = *c.getSourceRegister(opcode)
+		}
+
+		c.cp(value)
 	case 0xc3:
 		c.jp()
 	case 0xe0:
+		c.sth()
+	case 0xf0:
 		c.ldh()
 	case 0xf3:
 		c.di()
@@ -240,7 +251,7 @@ func (c *CPU) jr(condition bool) {
 	if condition {
 		c.cycles++
 
-		// XXX
+		// XXX: is there a cleaner way to do this?
 		c.pc = uint16(int16(c.pc) + int16(steps))
 	}
 }
@@ -263,13 +274,31 @@ func (c *CPU) xor(value byte) {
 	}
 }
 
+func (c *CPU) cp(value byte) {
+	c.resetFlags(zero | halfCarry | carry)
+	c.setFlags(substract)
+
+	if value < c.a {
+		c.setFlags(halfCarry)
+	} else if value == c.a {
+		c.setFlags(zero)
+	} else {
+		c.setFlags(carry)
+	}
+}
+
 func (c *CPU) jp() {
 	c.pc = c.mmu.ReadWord(c.pc)
 }
 
-func (c *CPU) ldh() {
+func (c *CPU) sth() {
 	address := 0xff00 + uint16(c.fetch())
 	c.mmu.WriteByte(address, c.a)
+}
+
+func (c *CPU) ldh() {
+	address := 0xff00 + uint16(c.fetch())
+	c.a = c.mmu.ReadByte(address)
 }
 
 func (c *CPU) di() {
