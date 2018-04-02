@@ -68,6 +68,7 @@ func NewCPU(mmu *mmu.MMU) *CPU {
 func (c *CPU) Run() error {
 	for {
 		opcode := c.fetch()
+		fmt.Printf("opcode: %#x\n%#v\n", opcode, c)
 
 		err := c.decode(opcode)
 		if err != nil {
@@ -92,8 +93,11 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x01, 0x11, 0x21:
 		high, low := c.getRegisterPair(opcode)
 		c.ld16(high, low)
+	case 0x06, 0x0e, 0x16, 0x1e, 0x26, 0x2e, 0x3e:
+		pointer := c.getDestRegister(opcode)
+		c.ld8(pointer)
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf:
-		pointer := c.getRegister(opcode)
+		pointer := c.getSourceRegister(opcode)
 		c.xor(*pointer)
 	case 0xc3:
 		c.jp()
@@ -106,8 +110,8 @@ func (c *CPU) decode(opcode byte) error {
 	return nil
 }
 
-func (c *CPU) getRegister(opcode byte) *byte {
-	switch opcode & 0x7 {
+func (c *CPU) getRegister(code byte) *byte {
+	switch code {
 	case 0:
 		return &c.b
 	case 1:
@@ -125,6 +129,16 @@ func (c *CPU) getRegister(opcode byte) *byte {
 	}
 
 	return nil
+}
+
+func (c *CPU) getDestRegister(opcode byte) *byte {
+	code := opcode >> 3 & 0x7
+	return c.getRegister(code)
+}
+
+func (c *CPU) getSourceRegister(opcode byte) *byte {
+	code := opcode & 0x7
+	return c.getRegister(code)
 }
 
 func (c *CPU) getRegisterPair(opcode byte) (*byte, *byte) {
@@ -155,6 +169,10 @@ func (c *CPU) nop() {
 func (c *CPU) ld16(high, low *byte) {
 	*low = c.fetch()
 	*high = c.fetch()
+}
+
+func (c *CPU) ld8(register *byte) {
+	*register = c.fetch()
 }
 
 func (c *CPU) xor(value byte) {
