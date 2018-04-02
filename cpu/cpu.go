@@ -107,17 +107,11 @@ func (c *CPU) decode(opcode byte) error {
 		c.jr(condition)
 	case 0x32:
 		c.ldd()
-	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf:
-		pointer := c.getSourceRegister(opcode)
-		c.xor(*pointer)
+	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf, 0xee:
+		value := c.getArithmeticValue(opcode)
+		c.xor(value)
 	case 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbf, 0xfe:
-		var value byte
-		if opcode == 0xfe {
-			value = c.fetch()
-		} else {
-			value = *c.getSourceRegister(opcode)
-		}
-
+		value := c.getArithmeticValue(opcode)
 		c.cp(value)
 	case 0xc3:
 		c.jp()
@@ -195,6 +189,15 @@ func (c *CPU) getRegisterPair(opcode byte) (*byte, *byte) {
 	}
 
 	return nil, nil
+}
+
+func (c *CPU) getArithmeticValue(opcode byte) byte {
+	// If the instruction has a d8 operand (I love 16^2 Karnaugh maps)
+	if opcode&0xc6 == 0xc6 && opcode&1 == 0 {
+		return c.fetch()
+	} else {
+		return *c.getSourceRegister(opcode)
+	}
 }
 
 func (c *CPU) setFlags(value byte) {
