@@ -57,7 +57,8 @@ type CPU struct {
 	// Program counter
 	pc uint16
 
-	interrupts bool
+	// Interrupt Master Enable flag
+	ime bool
 
 	cycles int
 
@@ -119,6 +120,10 @@ func (c *CPU) decode(opcode byte) error {
 		c.jr(condition)
 	case 0x32:
 		c.ldd()
+	case 0x37:
+		c.scf()
+	case 0x3f:
+		c.ccf()
 	case 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa7, 0xe6:
 		value := c.getArithmeticValue(opcode)
 		c.and(value)
@@ -283,6 +288,18 @@ func (c *CPU) ldd() {
 	c.l = byte(address & 0xff)
 }
 
+// Sets the carry flag.
+func (c *CPU) scf() {
+	c.resetFlags(substract | halfCarry)
+	c.setFlags(carry)
+}
+
+// Flips the carry flag.
+func (c *CPU) ccf() {
+	c.resetFlags(substract | halfCarry)
+	c.f ^= carry
+}
+
 func (c *CPU) and(value byte) {
 	c.a &= value
 
@@ -340,9 +357,9 @@ func (c *CPU) ldh() {
 }
 
 func (c *CPU) di() {
-	c.interrupts = false
+	c.ime = false
 }
 
 func (c *CPU) ei() {
-	c.interrupts = true
+	c.ime = true
 }
