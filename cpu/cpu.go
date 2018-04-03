@@ -122,6 +122,9 @@ func (c *CPU) decode(opcode byte) error {
 		c.cpl()
 	case 0x32:
 		c.ldd()
+	// TODO: merge with ld8
+	case 0x36:
+		c.ldhld8()
 	case 0x37:
 		c.scf()
 	case 0x3f:
@@ -155,6 +158,10 @@ func (c *CPU) decode(opcode byte) error {
 	c.cycles += cycles[opcode]
 
 	return nil
+}
+
+func (c *CPU) getAddress() uint16 {
+	return uint16(c.h)<<8 | uint16(c.l)
 }
 
 func (c *CPU) getCondition(opcode byte) bool {
@@ -289,12 +296,19 @@ func (c *CPU) cpl() {
 }
 
 func (c *CPU) ldd() {
-	address := uint16(c.h)<<8 | uint16(c.l)
+	address := c.getAddress()
 	c.mmu.WriteByte(address, c.a)
 
 	address--
 	c.h = byte(address >> 8)
 	c.l = byte(address & 0xff)
+}
+
+func (c *CPU) ldhld8() {
+	address := c.getAddress()
+	value := c.fetch()
+
+	c.mmu.WriteByte(address, value)
 }
 
 // Sets the carry flag.
