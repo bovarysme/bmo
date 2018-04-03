@@ -113,6 +113,9 @@ func (c *CPU) decode(opcode byte) error {
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf, 0xee:
 		value := c.getArithmeticValue(opcode)
 		c.xor(value)
+	case 0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb7, 0xf6:
+		value := c.getArithmeticValue(opcode)
+		c.or(value)
 	case 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbf, 0xfe:
 		value := c.getArithmeticValue(opcode)
 		c.cp(value)
@@ -281,6 +284,15 @@ func (c *CPU) and(value byte) {
 
 func (c *CPU) xor(value byte) {
 	c.a ^= value
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	if c.a == 0 {
+		c.setFlags(zero)
+	}
+}
+
+func (c *CPU) or(value byte) {
+	c.a |= value
 
 	c.resetFlags(zero | substract | halfCarry | carry)
 	if c.a == 0 {
