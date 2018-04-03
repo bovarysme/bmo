@@ -118,6 +118,8 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x20, 0x28, 0x30, 0x38:
 		condition := c.getCondition(opcode)
 		c.jr(condition)
+	case 0x2f:
+		c.cpl()
 	case 0x32:
 		c.ldd()
 	case 0x37:
@@ -277,6 +279,13 @@ func (c *CPU) jr(condition bool) {
 		// XXX: is there a cleaner way to do this?
 		c.pc = uint16(int16(c.pc) + int16(steps))
 	}
+}
+
+// Takes the ones' complement of the contents of register A.
+func (c *CPU) cpl() {
+	c.a = ^c.a
+
+	c.setFlags(substract | halfCarry)
 }
 
 func (c *CPU) ldd() {
