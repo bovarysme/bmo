@@ -160,20 +160,20 @@ func (c *CPU) decode(opcode byte) error {
 		0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6f,
 		0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7f:
 
-		source := c.decodeSourceRegister(opcode)
+		source := c.getSourceValue(opcode)
 		dest := c.decodeDestRegister(opcode)
 		c.ldr(source, dest)
 	case 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa7, 0xe6:
-		value := c.decodeArithmeticValue(opcode)
+		value := c.getSourceValue(opcode)
 		c.and(value)
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf, 0xee:
-		value := c.decodeArithmeticValue(opcode)
+		value := c.getSourceValue(opcode)
 		c.xor(value)
 	case 0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb7, 0xf6:
-		value := c.decodeArithmeticValue(opcode)
+		value := c.getSourceValue(opcode)
 		c.or(value)
 	case 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbf, 0xfe:
-		value := c.decodeArithmeticValue(opcode)
+		value := c.getSourceValue(opcode)
 		c.cp(value)
 	case 0xc3:
 		c.jp()
@@ -229,10 +229,6 @@ func (c *CPU) pushStack(value uint16) {
 	c.mmu.WriteByte(c.sp-1, byte(c.pc>>8))
 	c.mmu.WriteByte(c.sp-2, byte(c.pc&0xff))
 	c.sp -= 2
-}
-
-func (c *CPU) getAddress() uint16 {
-	return uint16(c.h)<<8 | uint16(c.l)
 }
 
 func (c *CPU) decodeBit(opcode byte) int {
@@ -298,10 +294,22 @@ func (c *CPU) decodeRegisterPair(opcode byte) (*byte, *byte) {
 	return nil, nil
 }
 
-func (c *CPU) decodeArithmeticValue(opcode byte) byte {
-	// If the instruction is arithmetic and has a d8 operand
-	if opcode&0xc6 == 0xc6 && opcode&1 == 0 {
-		return c.fetch()
+func (c *CPU) getAddress() uint16 {
+	return uint16(c.h)<<8 | uint16(c.l)
+}
+
+func (c *CPU) getSourceValue(opcode byte) byte {
+	// If the instruction has a d8 or (HL) source operand (i.e. its 3 lowest
+	// bits are 0b110).
+	if opcode&0x7^0x6 == 0 {
+		// If the instruction has a d8 source operand (i.e. its 2 highest bits
+		// are either 0b00 or 0b11).
+		if opcode>>6 == 0 || opcode>>6 == 0x3 {
+			return c.fetch()
+		} else {
+			address := c.getAddress()
+			return c.mmu.ReadByte(address)
+		}
 	} else {
 		return *c.decodeSourceRegister(opcode)
 	}
@@ -422,8 +430,8 @@ func (c *CPU) ccf() {
 	c.f ^= carry
 }
 
-func (c *CPU) ldr(source, dest *byte) {
-	*dest = *source
+func (c *CPU) ldr(source byte, dest *byte) {
+	*dest = source
 }
 
 func (c *CPU) and(value byte) {
