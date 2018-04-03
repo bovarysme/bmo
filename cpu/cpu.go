@@ -99,6 +99,13 @@ func (c *CPU) fetch() byte {
 	return value
 }
 
+func (c *CPU) fetchWord() uint16 {
+	value := c.mmu.ReadWord(c.pc)
+	c.pc += 2
+
+	return value
+}
+
 func (c *CPU) decode(opcode byte) error {
 	switch opcode {
 	case 0x00:
@@ -120,9 +127,12 @@ func (c *CPU) decode(opcode byte) error {
 		c.jr(condition)
 	case 0x2f:
 		c.cpl()
+	// TODO: merge with ld16?
+	case 0x31:
+		c.ldsp16()
 	case 0x32:
 		c.ldd()
-	// TODO: merge with ld8
+	// TODO: merge with ld8?
 	case 0x36:
 		c.ldhld8()
 	case 0x37:
@@ -145,6 +155,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.jp()
 	case 0xe0:
 		c.sth()
+	case 0xea:
+		c.sta16()
 	case 0xf0:
 		c.ldh()
 	case 0xf3:
@@ -249,6 +261,10 @@ func (c *CPU) ld16(high, low *byte) {
 	*high = c.fetch()
 }
 
+func (c *CPU) ldsp16() {
+	c.sp = c.fetchWord()
+}
+
 func (c *CPU) inc(register *byte) {
 	*register++
 
@@ -274,6 +290,13 @@ func (c *CPU) dec(register *byte) {
 
 func (c *CPU) ld8(register *byte) {
 	*register = c.fetch()
+}
+
+func (c *CPU) ldhld8() {
+	address := c.getAddress()
+	value := c.fetch()
+
+	c.mmu.WriteByte(address, value)
 }
 
 func (c *CPU) jr(condition bool) {
@@ -302,13 +325,6 @@ func (c *CPU) ldd() {
 	address--
 	c.h = byte(address >> 8)
 	c.l = byte(address & 0xff)
-}
-
-func (c *CPU) ldhld8() {
-	address := c.getAddress()
-	value := c.fetch()
-
-	c.mmu.WriteByte(address, value)
 }
 
 // Sets the carry flag.
@@ -366,11 +382,16 @@ func (c *CPU) cp(value byte) {
 }
 
 func (c *CPU) jp() {
-	c.pc = c.mmu.ReadWord(c.pc)
+	c.pc = c.fetchWord()
 }
 
 func (c *CPU) sth() {
 	address := 0xff00 + uint16(c.fetch())
+	c.mmu.WriteByte(address, c.a)
+}
+
+func (c *CPU) sta16() {
+	address := c.fetchWord()
 	c.mmu.WriteByte(address, c.a)
 }
 
