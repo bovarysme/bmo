@@ -119,22 +119,22 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x00:
 		c.nop()
 	case 0x01, 0x11, 0x21:
-		high, low := c.getRegisterPair(opcode)
+		high, low := c.decodeRegisterPair(opcode)
 		c.ld16(high, low)
 	case 0x04, 0x0c, 0x14, 0x1c, 0x24, 0x2c, 0x34:
-		pointer := c.getDestRegister(opcode)
+		pointer := c.decodeDestRegister(opcode)
 		c.inc(pointer)
 	case 0x05, 0x0d, 0x15, 0x1d, 0x25, 0x2d, 0x3d:
-		pointer := c.getDestRegister(opcode)
+		pointer := c.decodeDestRegister(opcode)
 		c.dec(pointer)
 	case 0x06, 0x0e, 0x16, 0x1e, 0x26, 0x2e, 0x3e:
-		pointer := c.getDestRegister(opcode)
+		pointer := c.decodeDestRegister(opcode)
 		c.ld8(pointer)
 	case 0x0b, 0x1b, 0x2b:
-		high, low := c.getRegisterPair(opcode)
+		high, low := c.decodeRegisterPair(opcode)
 		c.dec16(high, low)
 	case 0x20, 0x28, 0x30, 0x38:
-		condition := c.getCondition(opcode)
+		condition := c.decodeCondition(opcode)
 		c.jr(condition)
 	case 0x2a:
 		c.ldi()
@@ -160,20 +160,20 @@ func (c *CPU) decode(opcode byte) error {
 		0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6f,
 		0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7f:
 
-		source := c.getSourceRegister(opcode)
-		dest := c.getDestRegister(opcode)
+		source := c.decodeSourceRegister(opcode)
+		dest := c.decodeDestRegister(opcode)
 		c.ldr(source, dest)
 	case 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa7, 0xe6:
-		value := c.getArithmeticValue(opcode)
+		value := c.decodeArithmeticValue(opcode)
 		c.and(value)
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf, 0xee:
-		value := c.getArithmeticValue(opcode)
+		value := c.decodeArithmeticValue(opcode)
 		c.xor(value)
 	case 0xb0, 0xb1, 0xb2, 0xb3, 0xb4, 0xb5, 0xb7, 0xf6:
-		value := c.getArithmeticValue(opcode)
+		value := c.decodeArithmeticValue(opcode)
 		c.or(value)
 	case 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbf, 0xfe:
-		value := c.getArithmeticValue(opcode)
+		value := c.decodeArithmeticValue(opcode)
 		c.cp(value)
 	case 0xc3:
 		c.jp()
@@ -226,7 +226,7 @@ func (c *CPU) decodeBit(opcode byte) int {
 	return int(opcode >> 3 & 0x3)
 }
 
-func (c *CPU) getCondition(opcode byte) bool {
+func (c *CPU) decodeCondition(opcode byte) bool {
 	switch opcode >> 3 & 0x3 {
 	case 0:
 		return c.f&zero == 0
@@ -241,7 +241,7 @@ func (c *CPU) getCondition(opcode byte) bool {
 	return false
 }
 
-func (c *CPU) getRegister(code byte) *byte {
+func (c *CPU) decodeRegister(code byte) *byte {
 	switch code {
 	case 0:
 		return &c.b
@@ -262,17 +262,17 @@ func (c *CPU) getRegister(code byte) *byte {
 	return nil
 }
 
-func (c *CPU) getDestRegister(opcode byte) *byte {
+func (c *CPU) decodeDestRegister(opcode byte) *byte {
 	code := opcode >> 3 & 0x7
-	return c.getRegister(code)
+	return c.decodeRegister(code)
 }
 
-func (c *CPU) getSourceRegister(opcode byte) *byte {
+func (c *CPU) decodeSourceRegister(opcode byte) *byte {
 	code := opcode & 0x7
-	return c.getRegister(code)
+	return c.decodeRegister(code)
 }
 
-func (c *CPU) getRegisterPair(opcode byte) (*byte, *byte) {
+func (c *CPU) decodeRegisterPair(opcode byte) (*byte, *byte) {
 	switch opcode >> 4 & 0x3 {
 	case 0:
 		return &c.b, &c.c
@@ -285,12 +285,12 @@ func (c *CPU) getRegisterPair(opcode byte) (*byte, *byte) {
 	return nil, nil
 }
 
-func (c *CPU) getArithmeticValue(opcode byte) byte {
+func (c *CPU) decodeArithmeticValue(opcode byte) byte {
 	// If the instruction is arithmetic and has a d8 operand
 	if opcode&0xc6 == 0xc6 && opcode&1 == 0 {
 		return c.fetch()
 	} else {
-		return *c.getSourceRegister(opcode)
+		return *c.decodeSourceRegister(opcode)
 	}
 }
 
