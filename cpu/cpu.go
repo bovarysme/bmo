@@ -125,6 +125,8 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x20, 0x28, 0x30, 0x38:
 		condition := c.getCondition(opcode)
 		c.jr(condition)
+	case 0x2a:
+		c.ldi()
 	case 0x2f:
 		c.cpl()
 	// TODO: merge with ld16?
@@ -309,6 +311,15 @@ func (c *CPU) jr(condition bool) {
 		// XXX: is there a cleaner way to do this?
 		c.pc = uint16(int16(c.pc) + int16(steps))
 	}
+}
+
+func (c *CPU) ldi() {
+	address := c.getAddress()
+	c.a = c.mmu.ReadByte(address)
+
+	address++
+	c.h = byte(address >> 8)
+	c.l = byte(address & 0xff)
 }
 
 // Takes the ones' complement of the contents of register A.
