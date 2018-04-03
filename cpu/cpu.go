@@ -155,6 +155,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.cp(value)
 	case 0xc3:
 		c.jp()
+	case 0xcd:
+		c.call()
 	case 0xe0:
 		c.sta8()
 	case 0xe2:
@@ -395,6 +397,14 @@ func (c *CPU) cp(value byte) {
 }
 
 func (c *CPU) jp() {
+	c.pc = c.fetchWord()
+}
+
+func (c *CPU) call() {
+	c.mmu.WriteByte(c.sp-1, byte(c.pc>>8))
+	c.mmu.WriteByte(c.sp-2, byte(c.pc&0xff))
+	c.sp -= 2
+
 	c.pc = c.fetchWord()
 }
 
