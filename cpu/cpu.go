@@ -122,6 +122,9 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x06, 0x0e, 0x16, 0x1e, 0x26, 0x2e, 0x3e:
 		pointer := c.getDestRegister(opcode)
 		c.ld8(pointer)
+	case 0x0b, 0x1b, 0x2b:
+		high, low := c.getRegisterPair(opcode)
+		c.dec16(high, low)
 	case 0x20, 0x28, 0x30, 0x38:
 		condition := c.getCondition(opcode)
 		c.jr(condition)
@@ -298,6 +301,15 @@ func (c *CPU) ld8(register *byte) {
 	*register = c.fetch()
 }
 
+func (c *CPU) dec16(high, low *byte) {
+	value := uint16(*high)<<8 | uint16(*low)
+
+	value--
+
+	*high = byte(value >> 8)
+	*low = byte(value & 0xff)
+}
+
 func (c *CPU) st8() {
 	address := c.getAddress()
 	value := c.fetch()
@@ -322,6 +334,7 @@ func (c *CPU) ldi() {
 	c.a = c.mmu.ReadByte(address)
 
 	address++
+
 	c.h = byte(address >> 8)
 	c.l = byte(address & 0xff)
 }
@@ -338,6 +351,7 @@ func (c *CPU) std() {
 	c.mmu.WriteByte(address, c.a)
 
 	address--
+
 	c.h = byte(address >> 8)
 	c.l = byte(address & 0xff)
 }
