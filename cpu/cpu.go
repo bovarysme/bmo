@@ -107,6 +107,9 @@ func (c *CPU) decode(opcode byte) error {
 		c.jr(condition)
 	case 0x32:
 		c.ldd()
+	case 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa7, 0xe6:
+		value := c.getArithmeticValue(opcode)
+		c.and(value)
 	case 0xa8, 0xa9, 0xaa, 0xab, 0xac, 0xad, 0xaf, 0xee:
 		value := c.getArithmeticValue(opcode)
 		c.xor(value)
@@ -192,7 +195,7 @@ func (c *CPU) getRegisterPair(opcode byte) (*byte, *byte) {
 }
 
 func (c *CPU) getArithmeticValue(opcode byte) byte {
-	// If the instruction has a d8 operand (I love 16^2 Karnaugh maps)
+	// If the instruction is arithmetic and has a d8 operand
 	if opcode&0xc6 == 0xc6 && opcode&1 == 0 {
 		return c.fetch()
 	} else {
@@ -263,6 +266,17 @@ func (c *CPU) ldd() {
 	address--
 	c.h = byte(address >> 8)
 	c.l = byte(address & 0xff)
+}
+
+func (c *CPU) and(value byte) {
+	c.a &= value
+
+	c.resetFlags(zero | substract | carry)
+	c.setFlags(halfCarry)
+
+	if c.a == 0 {
+		c.setFlags(zero)
+	}
 }
 
 func (c *CPU) xor(value byte) {
