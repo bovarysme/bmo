@@ -157,6 +157,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.jp()
 	case 0xe0:
 		c.sta8()
+	case 0xe2:
+		c.stc()
 	case 0xea:
 		c.sta16()
 	case 0xf0:
@@ -398,6 +400,11 @@ func (c *CPU) jp() {
 
 func (c *CPU) sta8() {
 	address := 0xff00 + uint16(c.fetch())
+	c.mmu.WriteByte(address, c.a)
+}
+
+func (c *CPU) stc() {
+	address := 0xff00 + uint16(c.c)
 	c.mmu.WriteByte(address, c.a)
 }
 
