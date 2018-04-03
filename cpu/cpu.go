@@ -52,6 +52,8 @@ type CPU struct {
 	h byte
 	l byte
 
+	// Stack pointer
+	sp uint16
 	// Program counter
 	pc uint16
 
@@ -64,7 +66,17 @@ type CPU struct {
 
 func NewCPU(mmu *mmu.MMU) *CPU {
 	return &CPU{
-		pc: 0x100,
+		a: 0x01,
+		f: 0xb0,
+		b: 0x00,
+		c: 0x13,
+		d: 0x00,
+		e: 0xd8,
+		h: 0x01,
+		l: 0x4d,
+
+		sp: 0xfffe,
+		pc: 0x0100,
 
 		mmu: mmu,
 	}
