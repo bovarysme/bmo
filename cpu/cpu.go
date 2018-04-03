@@ -218,6 +218,19 @@ func (c *CPU) decodePrefix() error {
 	return nil
 }
 
+func (c *CPU) popStack() uint16 {
+	value := c.mmu.ReadWord(c.sp)
+	c.sp += 2
+
+	return value
+}
+
+func (c *CPU) pushStack(value uint16) {
+	c.mmu.WriteByte(c.sp-1, byte(c.pc>>8))
+	c.mmu.WriteByte(c.sp-2, byte(c.pc&0xff))
+	c.sp -= 2
+}
+
 func (c *CPU) getAddress() uint16 {
 	return uint16(c.h)<<8 | uint16(c.l)
 }
@@ -460,17 +473,12 @@ func (c *CPU) jp() {
 }
 
 func (c *CPU) ret() {
-	c.pc = c.mmu.ReadWord(c.sp)
-	c.sp += 2
+	c.pc = c.popStack()
 }
 
 func (c *CPU) call() {
 	address := c.fetchWord()
-
-	c.mmu.WriteByte(c.sp-1, byte(c.pc>>8))
-	c.mmu.WriteByte(c.sp-2, byte(c.pc&0xff))
-	c.sp -= 2
-
+	c.pushStack(c.pc)
 	c.pc = address
 }
 
