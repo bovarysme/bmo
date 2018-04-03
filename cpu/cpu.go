@@ -41,6 +41,14 @@ func (e UnknownOpcodeError) Error() string {
 	return fmt.Sprintf("Unknown opcode: %#x", e.opcode)
 }
 
+type UnknownPrefixOpcodeError struct {
+	opcode byte
+}
+
+func (e UnknownPrefixOpcodeError) Error() string {
+	return fmt.Sprintf("Unknown prefix opcode: %#x", e.opcode)
+}
+
 type CPU struct {
 	// Registers
 	a byte
@@ -171,6 +179,11 @@ func (c *CPU) decode(opcode byte) error {
 		c.jp()
 	case 0xc9:
 		c.ret()
+	case 0xcb:
+		err := c.decodePrefix()
+		if err != nil {
+			return err
+		}
 	case 0xcd:
 		c.call()
 	case 0xe0:
@@ -194,8 +207,23 @@ func (c *CPU) decode(opcode byte) error {
 	return nil
 }
 
+func (c *CPU) decodePrefix() error {
+	opcode := c.fetch()
+
+	switch opcode {
+	default:
+		return &UnknownPrefixOpcodeError{opcode: opcode}
+	}
+
+	return nil
+}
+
 func (c *CPU) getAddress() uint16 {
 	return uint16(c.h)<<8 | uint16(c.l)
+}
+
+func (c *CPU) decodeBit(opcode byte) int {
+	return int(opcode >> 3 & 0x3)
 }
 
 func (c *CPU) getCondition(opcode byte) bool {
