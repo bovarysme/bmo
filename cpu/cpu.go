@@ -169,6 +169,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.cp(value)
 	case 0xc3:
 		c.jp()
+	case 0xc9:
+		c.ret()
 	case 0xcd:
 		c.call()
 	case 0xe0:
@@ -429,12 +431,19 @@ func (c *CPU) jp() {
 	c.pc = c.fetchWord()
 }
 
+func (c *CPU) ret() {
+	c.pc = c.mmu.ReadWord(c.sp)
+	c.sp += 2
+}
+
 func (c *CPU) call() {
+	address := c.fetchWord()
+
 	c.mmu.WriteByte(c.sp-1, byte(c.pc>>8))
 	c.mmu.WriteByte(c.sp-2, byte(c.pc&0xff))
 	c.sp -= 2
 
-	c.pc = c.fetchWord()
+	c.pc = address
 }
 
 func (c *CPU) sta8() {

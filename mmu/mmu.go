@@ -21,7 +21,7 @@ type MMU struct {
 	RAM         [Forbidden - RAM]byte
 	OAMRAM      [Unused - OAMRAM]byte
 	IO          [HRAM - IO]byte
-	HRAM        [RAMSize - HRAM]byte
+	HRAM        [0x10000 - HRAM]byte
 }
 
 func NewMMU(rom []byte) *MMU {
@@ -59,5 +59,15 @@ func (m *MMU) ReadWord(address uint16) uint16 {
 func (m *MMU) WriteByte(address uint16, value byte) {
 	if address >= IO && address < HRAM {
 		m.IO[address-IO] = value
+	} else if address >= VideoRAM && address < ExternalRAM {
+		m.VideoRAM[address-VideoRAM] = value
+	} else if address >= ExternalRAM && address < RAM {
+		m.ExternalRAM[address-ExternalRAM] = value
+	} else if address >= RAM && address < Forbidden {
+		m.RAM[address-RAM] = value
+	} else if address >= OAMRAM && address < Unused {
+		m.OAMRAM[address-OAMRAM] = value
+	} else if address >= HRAM && address <= RAMSize {
+		m.HRAM[address-HRAM] = value
 	}
 }
