@@ -133,10 +133,10 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x31:
 		c.ldsp16()
 	case 0x32:
-		c.ldd()
+		c.std()
 	// TODO: merge with ld8?
 	case 0x36:
-		c.ldhld8()
+		c.st8()
 	case 0x37:
 		c.scf()
 	case 0x3f:
@@ -156,11 +156,11 @@ func (c *CPU) decode(opcode byte) error {
 	case 0xc3:
 		c.jp()
 	case 0xe0:
-		c.sth()
+		c.sta8()
 	case 0xea:
 		c.sta16()
 	case 0xf0:
-		c.ldh()
+		c.lda8()
 	case 0xf3:
 		c.di()
 	case 0xfb:
@@ -294,7 +294,7 @@ func (c *CPU) ld8(register *byte) {
 	*register = c.fetch()
 }
 
-func (c *CPU) ldhld8() {
+func (c *CPU) st8() {
 	address := c.getAddress()
 	value := c.fetch()
 
@@ -329,7 +329,7 @@ func (c *CPU) cpl() {
 	c.setFlags(substract | halfCarry)
 }
 
-func (c *CPU) ldd() {
+func (c *CPU) std() {
 	address := c.getAddress()
 	c.mmu.WriteByte(address, c.a)
 
@@ -396,7 +396,7 @@ func (c *CPU) jp() {
 	c.pc = c.fetchWord()
 }
 
-func (c *CPU) sth() {
+func (c *CPU) sta8() {
 	address := 0xff00 + uint16(c.fetch())
 	c.mmu.WriteByte(address, c.a)
 }
@@ -406,7 +406,7 @@ func (c *CPU) sta16() {
 	c.mmu.WriteByte(address, c.a)
 }
 
-func (c *CPU) ldh() {
+func (c *CPU) lda8() {
 	address := 0xff00 + uint16(c.fetch())
 	c.a = c.mmu.ReadByte(address)
 }
