@@ -296,20 +296,22 @@ func (c *CPU) getAddress() uint16 {
 }
 
 func (c *CPU) getSourceValue(opcode byte) byte {
-	// If the instruction has a d8 or (HL) source operand (i.e. its 3 lowest
-	// bits are 0b110).
-	if opcode&0x7^0x6 == 0 {
-		// If the instruction has a d8 source operand (i.e. its 2 highest bits
-		// are either 0b00 or 0b11).
-		if opcode>>6 == 0 || opcode>>6 == 0x3 {
-			return c.fetch()
-		} else {
-			address := c.getAddress()
-			return c.mmu.ReadByte(address)
-		}
-	} else {
-		return *c.decodeSourceRegister(opcode)
+	// If the instruction has a register source operand.
+	register := c.decodeSourceRegister(opcode)
+	if register != nil {
+		return *register
 	}
+
+	// If the instruction has a d8 source operand (i.e. its 2 highest bits are
+	// either 0b00 or 0b11).
+	if opcode>>6 == 0 || opcode>>6 == 0x3 {
+		return c.fetch()
+	}
+
+	// Else the instruction has a (HL) source operand.
+	address := c.getAddress()
+
+	return c.mmu.ReadByte(address)
 }
 
 func (c *CPU) setFlags(value byte) {
