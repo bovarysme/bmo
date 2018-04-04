@@ -49,6 +49,36 @@ func (e UnknownPrefixOpcodeError) Error() string {
 	return fmt.Sprintf("Unknown prefix opcode: %#x", e.opcode)
 }
 
+type Operand interface {
+	Get() byte
+	Set(value byte)
+}
+
+type RegisterOperand struct {
+	register *byte
+}
+
+func (o *RegisterOperand) Get() byte {
+	return *o.register
+}
+
+func (o *RegisterOperand) Set(value byte) {
+	*o.register = value
+}
+
+type MemoryOperand struct {
+	address uint16
+	mmu     *mmu.MMU
+}
+
+func (o *MemoryOperand) Get() byte {
+	return o.mmu.ReadByte(o.address)
+}
+
+func (o *MemoryOperand) Set(value byte) {
+	o.mmu.WriteByte(o.address, value)
+}
+
 type CPU struct {
 	// Registers
 	a byte
@@ -154,8 +184,10 @@ func (c *CPU) decode(opcode byte) error {
 		c.ldsp16()
 	case 0x32:
 		c.std()
-	case 0x36:
-		c.st8()
+	case 0x36, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x77:
+		operand := c.getDestOperand(opcode)
+		value := c.getSourceValue(opcode)
+		c.st(operand, value)
 	case 0x37:
 		c.scf()
 	case 0x3f:
@@ -310,8 +342,20 @@ func (c *CPU) getSourceValue(opcode byte) byte {
 
 	// Else the instruction has a (HL) source operand.
 	address := c.getAddress()
-
 	return c.mmu.ReadByte(address)
+}
+
+func (c *CPU) getDestOperand(opcode byte) Operand {
+	register := c.decodeDestRegister(opcode)
+	if register != nil {
+		return &RegisterOperand{register: register}
+	}
+
+	address := c.getAddress()
+	return &MemoryOperand{
+		address: address,
+		mmu:     c.mmu,
+	}
 }
 
 func (c *CPU) setFlags(value byte) {
@@ -371,11 +415,8 @@ func (c *CPU) dec16(high, low *byte) {
 	*low = byte(value & 0xff)
 }
 
-func (c *CPU) st8() {
-	address := c.getAddress()
-	value := c.fetch()
-
-	c.mmu.WriteByte(address, value)
+func (c *CPU) st(operand Operand, value byte) {
+	operand.Set(value)
 }
 
 func (c *CPU) jr(condition bool) {
