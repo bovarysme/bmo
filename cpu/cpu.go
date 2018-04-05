@@ -73,29 +73,29 @@ type Operand interface {
 	Set(value byte)
 }
 
-type RegisterOperand struct {
+type Register struct {
 	register *byte
 }
 
-func (o *RegisterOperand) Get() byte {
-	return *o.register
+func (r *Register) Get() byte {
+	return *r.register
 }
 
-func (o *RegisterOperand) Set(value byte) {
-	*o.register = value
+func (r *Register) Set(value byte) {
+	*r.register = value
 }
 
-type MemoryOperand struct {
+type Memory struct {
 	address uint16
 	mmu     *mmu.MMU
 }
 
-func (o *MemoryOperand) Get() byte {
-	return o.mmu.ReadByte(o.address)
+func (m *Memory) Get() byte {
+	return m.mmu.ReadByte(m.address)
 }
 
-func (o *MemoryOperand) Set(value byte) {
-	o.mmu.WriteByte(o.address, value)
+func (m *Memory) Set(value byte) {
+	m.mmu.WriteByte(m.address, value)
 }
 
 type ExtendedOperand interface {
@@ -425,11 +425,11 @@ func (c *CPU) setHL(value uint16) {
 
 func (c *CPU) getOperand(register *byte) Operand {
 	if register != nil {
-		return &RegisterOperand{register: register}
+		return &Register{register: register}
 	}
 
 	address := c.getHL()
-	return &MemoryOperand{
+	return &Memory{
 		address: address,
 		mmu:     c.mmu,
 	}
