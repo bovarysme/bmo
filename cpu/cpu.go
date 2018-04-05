@@ -189,6 +189,9 @@ func (c *CPU) decode(opcode byte) error {
 		operand := c.getDestOperand(opcode)
 		value := c.getSourceValue(opcode)
 		c.ld(operand, value)
+	case 0x09, 0x19, 0x29:
+		high, low := c.decodeRegisterPair(opcode)
+		c.add16(high, low)
 	case 0x0b, 0x1b, 0x2b:
 		high, low := c.decodeRegisterPair(opcode)
 		c.dec16(high, low)
@@ -483,6 +486,21 @@ func (c *CPU) dec(operand Operand) {
 
 func (c *CPU) ld(operand Operand, value byte) {
 	operand.Set(value)
+}
+
+func (c *CPU) add16(high, low *byte) {
+	c.resetFlags(substract | halfCarry | carry)
+
+	temp := uint32(*high) + uint32(*low)
+	if temp>>12&1 == 1 {
+		c.setFlags(halfCarry)
+	}
+	if temp > 0xffff {
+		c.setFlags(carry)
+	}
+
+	c.h = byte(temp >> 8)
+	c.l = byte(temp & 0xff)
 }
 
 func (c *CPU) dec16(high, low *byte) {
