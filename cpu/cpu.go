@@ -385,8 +385,13 @@ func (c *CPU) decodeRegisterPair(opcode byte) (*byte, *byte) {
 	return nil, nil
 }
 
-func (c *CPU) getAddress() uint16 {
+func (c *CPU) getHL() uint16 {
 	return uint16(c.h)<<8 | uint16(c.l)
+}
+
+func (c *CPU) setHL(value uint16) {
+	c.h = byte(value >> 8)
+	c.l = byte(value & 0xff)
 }
 
 func (c *CPU) getOperand(register *byte) Operand {
@@ -394,7 +399,7 @@ func (c *CPU) getOperand(register *byte) Operand {
 		return &RegisterOperand{register: register}
 	}
 
-	address := c.getAddress()
+	address := c.getHL()
 	return &MemoryOperand{
 		address: address,
 		mmu:     c.mmu,
@@ -425,7 +430,7 @@ func (c *CPU) getSourceValue(opcode byte) byte {
 	}
 
 	// Else the instruction has a (HL) source operand.
-	address := c.getAddress()
+	address := c.getHL()
 	return c.mmu.ReadByte(address)
 }
 
@@ -499,8 +504,7 @@ func (c *CPU) add16(high, low *byte) {
 		c.setFlags(carry)
 	}
 
-	c.h = byte(temp >> 8)
-	c.l = byte(temp & 0xff)
+	c.setHL(uint16(temp))
 }
 
 func (c *CPU) dec16(high, low *byte) {
@@ -525,13 +529,12 @@ func (c *CPU) jr(condition bool) {
 }
 
 func (c *CPU) ldi() {
-	address := c.getAddress()
+	address := c.getHL()
 	c.a = c.mmu.ReadByte(address)
 
 	address++
 
-	c.h = byte(address >> 8)
-	c.l = byte(address & 0xff)
+	c.setHL(address)
 }
 
 // Takes the ones' complement of the contents of register A.
@@ -542,13 +545,12 @@ func (c *CPU) cpl() {
 }
 
 func (c *CPU) std() {
-	address := c.getAddress()
+	address := c.getHL()
 	c.mmu.WriteByte(address, c.a)
 
 	address--
 
-	c.h = byte(address >> 8)
-	c.l = byte(address & 0xff)
+	c.setHL(address)
 }
 
 // Sets the carry flag.
