@@ -151,12 +151,12 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x01, 0x11, 0x21:
 		high, low := c.decodeRegisterPair(opcode)
 		c.ld16(high, low)
-	case 0x04, 0x0c, 0x14, 0x1c, 0x24, 0x2c, 0x34:
-		pointer := c.decodeDestRegister(opcode)
-		c.inc(pointer)
-	case 0x05, 0x0d, 0x15, 0x1d, 0x25, 0x2d, 0x3d:
-		pointer := c.decodeDestRegister(opcode)
-		c.dec(pointer)
+	case 0x04, 0x0c, 0x14, 0x1c, 0x24, 0x2c, 0x34, 0x3c:
+		operand := c.getDestOperand(opcode)
+		c.inc(operand)
+	case 0x05, 0x0d, 0x15, 0x1d, 0x25, 0x2d, 0x35, 0x3d:
+		operand := c.getDestOperand(opcode)
+		c.dec(operand)
 	case 0x06, 0x0e, 0x16, 0x1e, 0x26, 0x2e, 0x3e,
 		0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
 		0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
@@ -400,25 +400,27 @@ func (c *CPU) ldsp16() {
 	c.sp = c.fetchWord()
 }
 
-func (c *CPU) inc(register *byte) {
-	*register++
+func (c *CPU) inc(operand Operand) {
+	value := operand.Get() + 1
+	operand.Set(value)
 
 	c.resetFlags(zero | substract | halfCarry)
 
-	if *register == 0 {
+	if value == 0 {
 		c.setFlags(zero | halfCarry)
 	}
 }
 
-func (c *CPU) dec(register *byte) {
-	*register--
+func (c *CPU) dec(operand Operand) {
+	value := operand.Get() - 1
+	operand.Set(value)
 
 	c.resetFlags(zero | halfCarry)
 	c.setFlags(substract)
 
-	if *register == 0 {
+	if value == 0 {
 		c.setFlags(zero)
-	} else if *register == 0xff {
+	} else if value == 0xff {
 		c.setFlags(halfCarry)
 	}
 }
