@@ -275,8 +275,8 @@ func (c *CPU) popStack() uint16 {
 }
 
 func (c *CPU) pushStack(value uint16) {
-	c.mmu.WriteByte(c.sp-1, byte(c.pc>>8))
-	c.mmu.WriteByte(c.sp-2, byte(c.pc&0xff))
+	c.mmu.WriteByte(c.sp-1, byte(value>>8))
+	c.mmu.WriteByte(c.sp-2, byte(value&0xff))
 	c.sp -= 2
 }
 
