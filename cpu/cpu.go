@@ -189,6 +189,9 @@ func (c *CPU) decode(opcode byte) error {
 		c.scf()
 	case 0x3f:
 		c.ccf()
+	case 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0xc6:
+		value := c.getSourceValue(opcode)
+		c.add(value)
 	case 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xe6:
 		value := c.getSourceValue(opcode)
 		c.and(value)
@@ -499,6 +502,24 @@ func (c *CPU) scf() {
 func (c *CPU) ccf() {
 	c.resetFlags(substract | halfCarry)
 	c.f ^= carry
+}
+
+func (c *CPU) add(value byte) {
+	c.resetFlags(zero | substract | halfCarry | carry)
+
+	temp := uint16(c.a) + uint16(value)
+	if temp>>4&1 == 1 {
+		c.setFlags(halfCarry)
+	}
+	if temp > 0xff {
+		c.setFlags(carry)
+	}
+
+	c.a = byte(temp)
+
+	if c.a == 0 {
+		c.setFlags(zero)
+	}
 }
 
 func (c *CPU) and(value byte) {
