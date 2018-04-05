@@ -244,6 +244,10 @@ func (c *CPU) decodePrefix() error {
 		bit := c.decodeBit(opcode)
 		operand := c.getSourceOperand(opcode)
 		c.bit(bit, operand)
+	case opcode >= 0x80 && opcode <= 0xbf:
+		bit := c.decodeBit(opcode)
+		operand := c.getSourceOperand(opcode)
+		c.res(bit, operand)
 	default:
 		return &UnknownPrefixOpcodeError{opcode: opcode}
 	}
@@ -578,4 +582,9 @@ func (c *CPU) bit(bit byte, operand Operand) {
 	} else {
 		c.resetFlags(zero)
 	}
+}
+
+func (c *CPU) res(bit byte, operand Operand) {
+	value := operand.Get() &^ 1 << bit
+	operand.Set(value)
 }
