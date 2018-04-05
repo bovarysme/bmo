@@ -204,6 +204,9 @@ func (c *CPU) decode(opcode byte) error {
 	case 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf, 0xfe:
 		value := c.getSourceValue(opcode)
 		c.cp(value)
+	case 0xc1, 0xd1, 0xe1, 0xf1:
+		high, low := c.decodeRegisterPair(opcode)
+		c.pop(high, low)
 	case 0xc3:
 		c.jp()
 	case 0xc7, 0xcf, 0xd7, 0xdf, 0xe7, 0xef, 0xf7, 0xff:
@@ -345,6 +348,8 @@ func (c *CPU) decodeRegisterPair(opcode byte) (*byte, *byte) {
 		return &c.d, &c.e
 	case 2:
 		return &c.h, &c.l
+	case 3:
+		return &c.a, &c.f
 	}
 
 	return nil, nil
@@ -561,6 +566,18 @@ func (c *CPU) cp(value byte) {
 		c.setFlags(zero)
 	} else {
 		c.setFlags(carry)
+	}
+}
+
+func (c *CPU) pop(high, low *byte) {
+	value := c.popStack()
+
+	*high = byte(value >> 8)
+	*low = byte(value & 0xff)
+
+	// Ensures the lower bits of register F are zeros.
+	if low == &c.f {
+		c.f &= 0xf0
 	}
 }
 
