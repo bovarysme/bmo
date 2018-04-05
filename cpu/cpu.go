@@ -237,6 +237,18 @@ func (c *CPU) decodePrefix() error {
 	opcode := c.fetch()
 
 	switch {
+	case opcode >= 0x00 && opcode <= 0x07:
+		operand := c.getSourceOperand(opcode)
+		c.rlc(operand)
+	case opcode >= 0x08 && opcode <= 0x0f:
+		operand := c.getSourceOperand(opcode)
+		c.rrc(operand)
+	case opcode >= 0x20 && opcode <= 0x27:
+		operand := c.getSourceOperand(opcode)
+		c.sla(operand)
+	case opcode >= 0x38 && opcode <= 0x3f:
+		operand := c.getSourceOperand(opcode)
+		c.srl(operand)
 	case opcode >= 0x40 && opcode <= 0x7f:
 		bit := c.decodeBit(opcode)
 		operand := c.getSourceOperand(opcode)
@@ -568,6 +580,74 @@ func (c *CPU) di() {
 
 func (c *CPU) ei() {
 	c.ime = true
+}
+
+func (c *CPU) rlc(operand Operand) {
+	value := operand.Get()
+
+	bit := value >> 7
+	value = value<<1 | bit
+
+	operand.Set(value)
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	if value == 0 {
+		c.setFlags(zero)
+	}
+	if bit == 1 {
+		c.setFlags(carry)
+	}
+}
+
+func (c *CPU) rrc(operand Operand) {
+	value := operand.Get()
+
+	bit := value & 1
+	value = bit<<7 | value>>1
+
+	operand.Set(value)
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	if value == 0 {
+		c.setFlags(zero)
+	}
+	if bit == 1 {
+		c.setFlags(carry)
+	}
+}
+
+func (c *CPU) sla(operand Operand) {
+	value := operand.Get()
+
+	bit := value >> 7
+	value <<= 1
+
+	operand.Set(value)
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	if value == 0 {
+		c.setFlags(zero)
+	}
+	if bit == 1 {
+		c.setFlags(carry)
+	}
+}
+
+func (c *CPU) srl(operand Operand) {
+	value := operand.Get()
+
+	bit := value & 1
+	value >>= 1
+
+	operand.Set(value)
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	if value == 0 {
+		c.setFlags(zero)
+	}
+	if bit == 1 {
+		c.setFlags(carry)
+	}
 }
 
 func (c *CPU) bit(bit byte, operand Operand) {
