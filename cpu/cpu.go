@@ -98,6 +98,37 @@ func (o *MemoryOperand) Set(value byte) {
 	o.mmu.WriteByte(o.address, value)
 }
 
+type ExtendedOperand interface {
+	Get() uint16
+	Set(value uint16)
+}
+
+type ExtendedRegister struct {
+	high *byte
+	low  *byte
+}
+
+func (e *ExtendedRegister) Get() uint16 {
+	return uint16(*e.high)<<8 | uint16(*e.low)
+}
+
+func (e *ExtendedRegister) Set(value uint16) {
+	*e.high = byte(value >> 8)
+	*e.low = byte(value & 0xff)
+}
+
+type StackPointer struct {
+	sp *uint16
+}
+
+func (s *StackPointer) Get() uint16 {
+	return *s.sp
+}
+
+func (s *StackPointer) Set(value uint16) {
+	*s.sp = value
+}
+
 type CPU struct {
 	// Registers
 	a byte
@@ -167,9 +198,9 @@ func (c *CPU) decode(opcode byte) error {
 	switch opcode {
 	case 0x00:
 		c.nop()
-	case 0x01, 0x11, 0x21:
-		high, low := c.decodeRegisterPair(opcode)
-		c.ld16(high, low)
+	case 0x01, 0x11, 0x21, 0x31:
+		operand := c.getExtendedOperand(opcode)
+		c.ld16(operand)
 	case 0x04, 0x0c, 0x14, 0x1c, 0x24, 0x2c, 0x34, 0x3c:
 		operand := c.getDestOperand(opcode)
 		c.inc(operand)
@@ -189,12 +220,12 @@ func (c *CPU) decode(opcode byte) error {
 		operand := c.getDestOperand(opcode)
 		value := c.getSourceValue(opcode)
 		c.ld(operand, value)
-	case 0x09, 0x19, 0x29:
-		high, low := c.decodeRegisterPair(opcode)
-		c.add16(high, low)
-	case 0x0b, 0x1b, 0x2b:
-		high, low := c.decodeRegisterPair(opcode)
-		c.dec16(high, low)
+	case 0x09, 0x19, 0x29, 0x39:
+		operand := c.getExtendedOperand(opcode)
+		c.add16(operand)
+	case 0x0b, 0x1b, 0x2b, 0x3b:
+		operand := c.getExtendedOperand(opcode)
+		c.dec16(operand)
 	case 0x20, 0x28, 0x30, 0x38:
 		condition := c.decodeCondition(opcode)
 		c.jr(condition)
@@ -202,9 +233,6 @@ func (c *CPU) decode(opcode byte) error {
 		c.ldi()
 	case 0x2f:
 		c.cpl()
-	// TODO: merge with ld16?
-	case 0x31:
-		c.ldsp16()
 	case 0x32:
 		c.std()
 	case 0x37:
@@ -382,6 +410,7 @@ func (c *CPU) decodeRegisterPair(opcode byte) (*byte, *byte) {
 		return &c.a, &c.f
 	}
 
+	// Never reached.
 	return nil, nil
 }
 
@@ -414,6 +443,18 @@ func (c *CPU) getSourceOperand(opcode byte) Operand {
 func (c *CPU) getDestOperand(opcode byte) Operand {
 	register := c.decodeDestRegister(opcode)
 	return c.getOperand(register)
+}
+
+func (c *CPU) getExtendedOperand(opcode byte) ExtendedOperand {
+	if opcode>>4 == 0x3 {
+		return &StackPointer{sp: &c.sp}
+	}
+
+	high, low := c.decodeRegisterPair(opcode)
+	return &ExtendedRegister{
+		high: high,
+		low:  low,
+	}
 }
 
 func (c *CPU) getSourceValue(opcode byte) byte {
@@ -455,13 +496,9 @@ func (c *CPU) nop() {
 
 }
 
-func (c *CPU) ld16(high, low *byte) {
-	*low = c.fetch()
-	*high = c.fetch()
-}
-
-func (c *CPU) ldsp16() {
-	c.sp = c.fetchWord()
+func (c *CPU) ld16(operand ExtendedOperand) {
+	value := c.fetchWord()
+	operand.Set(value)
 }
 
 func (c *CPU) inc(operand Operand) {
@@ -493,10 +530,10 @@ func (c *CPU) ld(operand Operand, value byte) {
 	operand.Set(value)
 }
 
-func (c *CPU) add16(high, low *byte) {
+func (c *CPU) add16(operand ExtendedOperand) {
 	c.resetFlags(substract | halfCarry | carry)
 
-	temp := uint32(*high) + uint32(*low)
+	temp := uint32(c.getHL()) + uint32(operand.Get())
 	if temp>>12&1 == 1 {
 		c.setFlags(halfCarry)
 	}
@@ -507,13 +544,10 @@ func (c *CPU) add16(high, low *byte) {
 	c.setHL(uint16(temp))
 }
 
-func (c *CPU) dec16(high, low *byte) {
-	value := uint16(*high)<<8 | uint16(*low)
-
+func (c *CPU) dec16(operand ExtendedOperand) {
+	value := operand.Get()
 	value--
-
-	*high = byte(value >> 8)
-	*low = byte(value & 0xff)
+	operand.Set(value)
 }
 
 func (c *CPU) jr(condition bool) {
