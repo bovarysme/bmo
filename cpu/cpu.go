@@ -286,6 +286,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.stc()
 	case 0xea:
 		c.sta16()
+	case 0xe9:
+		c.jphl()
 	case 0xf0:
 		c.lda8()
 	case 0xf3:
@@ -737,6 +739,10 @@ func (c *CPU) stc() {
 func (c *CPU) sta16() {
 	address := c.fetchWord()
 	c.mmu.WriteByte(address, c.a)
+}
+
+func (c *CPU) jphl() {
+	c.pc = c.getHL()
 }
 
 func (c *CPU) lda8() {
