@@ -235,31 +235,27 @@ func (c *CPU) decode(opcode byte) error {
 
 func (c *CPU) decodePrefix() error {
 	opcode := c.fetch()
+	operand := c.getSourceOperand(opcode)
 
 	switch {
 	case opcode >= 0x00 && opcode <= 0x07:
-		operand := c.getSourceOperand(opcode)
 		c.rlc(operand)
 	case opcode >= 0x08 && opcode <= 0x0f:
-		operand := c.getSourceOperand(opcode)
 		c.rrc(operand)
 	case opcode >= 0x20 && opcode <= 0x27:
-		operand := c.getSourceOperand(opcode)
 		c.sla(operand)
+	case opcode >= 0x30 && opcode <= 0x37:
+		c.swap(operand)
 	case opcode >= 0x38 && opcode <= 0x3f:
-		operand := c.getSourceOperand(opcode)
 		c.srl(operand)
 	case opcode >= 0x40 && opcode <= 0x7f:
 		bit := c.decodeBit(opcode)
-		operand := c.getSourceOperand(opcode)
 		c.bit(bit, operand)
 	case opcode >= 0x80 && opcode <= 0xbf:
 		bit := c.decodeBit(opcode)
-		operand := c.getSourceOperand(opcode)
 		c.res(bit, operand)
 	case opcode >= 0xc0 && opcode <= 0xff:
 		bit := c.decodeBit(opcode)
-		operand := c.getSourceOperand(opcode)
 		c.set(bit, operand)
 	default:
 		return &UnknownPrefixOpcodeError{opcode: opcode}
@@ -630,6 +626,20 @@ func (c *CPU) sla(operand Operand) {
 	}
 	if bit == 1 {
 		c.setFlags(carry)
+	}
+}
+
+func (c *CPU) swap(operand Operand) {
+	value := operand.Get()
+
+	lower := value & 0x0f
+	value = lower<<4 | value>>4
+
+	operand.Set(value)
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	if value == 0 {
+		c.setFlags(zero)
 	}
 }
 
