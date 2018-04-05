@@ -238,6 +238,8 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x20, 0x28, 0x30, 0x38:
 		condition := c.decodeCondition(opcode)
 		c.jr(condition)
+	case 0x22:
+		c.sti()
 	case 0x2a:
 		c.ldi()
 	case 0x2f:
@@ -588,6 +590,15 @@ func (c *CPU) jr(condition bool) {
 		// XXX: is there a cleaner way to do this?
 		c.pc = uint16(int16(c.pc) + int16(steps))
 	}
+}
+
+func (c *CPU) sti() {
+	address := c.getHL()
+	c.mmu.WriteByte(address, c.a)
+
+	address++
+
+	c.setHL(address)
 }
 
 func (c *CPU) ldi() {
