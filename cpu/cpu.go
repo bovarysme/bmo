@@ -229,6 +229,9 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x09, 0x19, 0x29, 0x39:
 		operand := c.getExtendedOperand(opcode)
 		c.add16(operand)
+	case 0x0a, 0x1a:
+		operand := c.getExtendedOperand(opcode)
+		c.ldr16(operand)
 	case 0x0b, 0x1b, 0x2b, 0x3b:
 		operand := c.getExtendedOperand(opcode)
 		c.dec16(operand)
@@ -562,6 +565,11 @@ func (c *CPU) add16(operand ExtendedOperand) {
 	}
 
 	c.setHL(uint16(temp))
+}
+
+func (c *CPU) ldr16(operand ExtendedOperand) {
+	address := operand.Get()
+	c.a = c.mmu.ReadByte(address)
 }
 
 func (c *CPU) dec16(operand ExtendedOperand) {
