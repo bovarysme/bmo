@@ -300,6 +300,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.lda8()
 	case 0xf3:
 		c.di()
+	case 0xfa:
+		c.lda16()
 	case 0xfb:
 		c.ei()
 	default:
@@ -779,6 +781,11 @@ func (c *CPU) lda8() {
 
 func (c *CPU) di() {
 	c.ime = false
+}
+
+func (c *CPU) lda16() {
+	address := c.fetchWord()
+	c.a = c.mmu.ReadByte(address)
 }
 
 func (c *CPU) ei() {
