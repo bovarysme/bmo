@@ -239,7 +239,11 @@ func (c *CPU) decode(opcode byte) error {
 func (c *CPU) decodePrefix() error {
 	opcode := c.fetch()
 
-	switch opcode {
+	switch {
+	case opcode >= 0x40 && opcode <= 0x7f:
+		bit := c.decodeBit(opcode)
+		operand := c.getSourceOperand(opcode)
+		c.bit(bit, operand)
 	default:
 		return &UnknownPrefixOpcodeError{opcode: opcode}
 	}
@@ -260,8 +264,8 @@ func (c *CPU) pushStack(value uint16) {
 	c.sp -= 2
 }
 
-func (c *CPU) decodeBit(opcode byte) int {
-	return int(opcode >> 3 & 0x3)
+func (c *CPU) decodeBit(opcode byte) byte {
+	return opcode >> 3 & 0x3
 }
 
 func (c *CPU) decodeCondition(opcode byte) bool {
@@ -327,6 +331,28 @@ func (c *CPU) getAddress() uint16 {
 	return uint16(c.h)<<8 | uint16(c.l)
 }
 
+func (c *CPU) getOperand(register *byte) Operand {
+	if register != nil {
+		return &RegisterOperand{register: register}
+	}
+
+	address := c.getAddress()
+	return &MemoryOperand{
+		address: address,
+		mmu:     c.mmu,
+	}
+}
+
+func (c *CPU) getSourceOperand(opcode byte) Operand {
+	register := c.decodeSourceRegister(opcode)
+	return c.getOperand(register)
+}
+
+func (c *CPU) getDestOperand(opcode byte) Operand {
+	register := c.decodeDestRegister(opcode)
+	return c.getOperand(register)
+}
+
 func (c *CPU) getSourceValue(opcode byte) byte {
 	// If the instruction has a register source operand.
 	register := c.decodeSourceRegister(opcode)
@@ -343,19 +369,6 @@ func (c *CPU) getSourceValue(opcode byte) byte {
 	// Else the instruction has a (HL) source operand.
 	address := c.getAddress()
 	return c.mmu.ReadByte(address)
-}
-
-func (c *CPU) getDestOperand(opcode byte) Operand {
-	register := c.decodeDestRegister(opcode)
-	if register != nil {
-		return &RegisterOperand{register: register}
-	}
-
-	address := c.getAddress()
-	return &MemoryOperand{
-		address: address,
-		mmu:     c.mmu,
-	}
 }
 
 func (c *CPU) setFlags(value byte) {
@@ -552,4 +565,17 @@ func (c *CPU) di() {
 
 func (c *CPU) ei() {
 	c.ime = true
+}
+
+func (c *CPU) bit(bit byte, operand Operand) {
+	c.resetFlags(substract)
+	c.setFlags(halfCarry)
+
+	value := operand.Get() >> bit & 1
+
+	if value == 0 {
+		c.setFlags(zero)
+	} else {
+		c.resetFlags(zero)
+	}
 }
