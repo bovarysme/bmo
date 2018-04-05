@@ -201,6 +201,9 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x01, 0x11, 0x21, 0x31:
 		operand := c.getExtendedOperand(opcode)
 		c.ld16(operand)
+	case 0x02, 0x12:
+		operand := c.getExtendedOperand(opcode)
+		c.str16(operand)
 	case 0x03, 0x13, 0x23, 0x33:
 		operand := c.getExtendedOperand(opcode)
 		c.inc16(operand)
@@ -505,6 +508,11 @@ func (c *CPU) nop() {
 func (c *CPU) ld16(operand ExtendedOperand) {
 	value := c.fetchWord()
 	operand.Set(value)
+}
+
+func (c *CPU) str16(operand ExtendedOperand) {
+	address := operand.Get()
+	c.mmu.WriteByte(address, c.a)
 }
 
 func (c *CPU) inc16(operand ExtendedOperand) {
