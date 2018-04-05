@@ -203,6 +203,9 @@ func (c *CPU) decode(opcode byte) error {
 		c.cp(value)
 	case 0xc3:
 		c.jp()
+	case 0xc7, 0xcf, 0xd7, 0xdf, 0xe7, 0xef, 0xf7, 0xff:
+		address := c.decodeAddress(opcode)
+		c.rst(address)
 	case 0xc9:
 		c.ret()
 	case 0xcb:
@@ -275,6 +278,10 @@ func (c *CPU) pushStack(value uint16) {
 	c.mmu.WriteByte(c.sp-1, byte(c.pc>>8))
 	c.mmu.WriteByte(c.sp-2, byte(c.pc&0xff))
 	c.sp -= 2
+}
+
+func (c *CPU) decodeAddress(opcode byte) uint16 {
+	return uint16(opcode >> 3 & 0x7 * 8)
 }
 
 func (c *CPU) decodeBit(opcode byte) byte {
@@ -538,6 +545,11 @@ func (c *CPU) cp(value byte) {
 
 func (c *CPU) jp() {
 	c.pc = c.fetchWord()
+}
+
+func (c *CPU) rst(address uint16) {
+	c.pushStack(c.pc)
+	c.pc = address
 }
 
 func (c *CPU) ret() {
