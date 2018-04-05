@@ -209,6 +209,9 @@ func (c *CPU) decode(opcode byte) error {
 		c.pop(high, low)
 	case 0xc3:
 		c.jp()
+	case 0xc5, 0xd5, 0xe5, 0xf5:
+		high, low := c.decodeRegisterPair(opcode)
+		c.push(high, low)
 	case 0xc7, 0xcf, 0xd7, 0xdf, 0xe7, 0xef, 0xf7, 0xff:
 		address := c.decodeAddress(opcode)
 		c.rst(address)
@@ -583,6 +586,11 @@ func (c *CPU) pop(high, low *byte) {
 
 func (c *CPU) jp() {
 	c.pc = c.fetchWord()
+}
+
+func (c *CPU) push(high, low *byte) {
+	value := uint16(*high<<8) | uint16(*low)
+	c.pushStack(value)
 }
 
 func (c *CPU) rst(address uint16) {
