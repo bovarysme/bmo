@@ -402,19 +402,20 @@ func (c *CPU) decodeSourceRegister(opcode byte) *byte {
 }
 
 func (c *CPU) decodeRegisterPair(opcode byte) (*byte, *byte) {
+	var high, low *byte
+
 	switch opcode >> 4 & 0x3 {
 	case 0:
-		return &c.b, &c.c
+		high, low = &c.b, &c.c
 	case 1:
-		return &c.d, &c.e
+		high, low = &c.d, &c.e
 	case 2:
-		return &c.h, &c.l
+		high, low = &c.h, &c.l
 	case 3:
-		return &c.a, &c.f
+		high, low = &c.a, &c.f
 	}
 
-	// Never reached.
-	return nil, nil
+	return high, low
 }
 
 func (c *CPU) getHL() uint16 {
