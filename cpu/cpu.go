@@ -268,9 +268,17 @@ func (c *CPU) decode(opcode byte) error {
 	case 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf, 0xfe:
 		value := c.getSourceValue(opcode)
 		c.cp(value)
+	// TODO: merge with ret?
+	case 0xc0, 0xc8, 0xd0, 0xd8:
+		condition := c.decodeCondition(opcode)
+		c.retc(condition)
 	case 0xc1, 0xd1, 0xe1, 0xf1:
 		high, low := c.decodeRegisterPair(opcode)
 		c.pop(high, low)
+	// TODO: merge with jp?
+	case 0xc2, 0xca, 0xd2, 0xda:
+		condition := c.decodeCondition(opcode)
+		c.jpc(condition)
 	case 0xc3:
 		c.jp()
 	case 0xc5, 0xd5, 0xe5, 0xf5:
@@ -719,6 +727,13 @@ func (c *CPU) cp(value byte) {
 	}
 }
 
+func (c *CPU) retc(condition bool) {
+	if condition {
+		c.cycles += 3
+		c.pc = c.popStack()
+	}
+}
+
 func (c *CPU) pop(high, low *byte) {
 	value := c.popStack()
 
@@ -728,6 +743,15 @@ func (c *CPU) pop(high, low *byte) {
 	// Ensures the lower bits of register F are zeros.
 	if low == &c.f {
 		c.f &= 0xf0
+	}
+}
+
+func (c *CPU) jpc(condition bool) {
+	address := c.fetchWord()
+
+	if condition {
+		c.cycles++
+		c.pc = address
 	}
 }
 
