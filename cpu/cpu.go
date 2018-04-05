@@ -235,9 +235,11 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x0b, 0x1b, 0x2b, 0x3b:
 		operand := c.getExtendedOperand(opcode)
 		c.dec16(operand)
+	case 0x18:
+		c.jr()
 	case 0x20, 0x28, 0x30, 0x38:
 		condition := c.decodeCondition(opcode)
-		c.jr(condition)
+		c.jrc(condition)
 	case 0x22:
 		c.sti()
 	case 0x2a:
@@ -590,7 +592,14 @@ func (c *CPU) dec16(operand ExtendedOperand) {
 	operand.Set(value)
 }
 
-func (c *CPU) jr(condition bool) {
+func (c *CPU) jr() {
+	steps := int8(c.fetch())
+
+	// XXX: is there a cleaner way to do this?
+	c.pc = uint16(int16(c.pc) + int16(steps))
+}
+
+func (c *CPU) jrc(condition bool) {
 	// XXX: [-128; 127] when the docs say [-127; 129]
 	steps := int8(c.fetch())
 
