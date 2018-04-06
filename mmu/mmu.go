@@ -13,6 +13,8 @@ const (
 	RAMSize     = 0xffff
 )
 
+const DMARegisterAddress uint16 = 0xff46
+
 // XXX
 type MMU struct {
 	ROM         []byte
@@ -69,5 +71,22 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 		m.OAMRAM[address-OAMRAM] = value
 	} else if address >= HRAM && address <= RAMSize {
 		m.HRAM[address-HRAM] = value
+	}
+
+	if address == DMARegisterAddress {
+		m.handleDMA(value)
+	}
+}
+
+func (m *MMU) handleDMA(value byte) {
+	source := uint16(value) << 8
+	dest := uint16(OAMRAM)
+
+	for i := 0; i < 0xa0; i++ {
+		b := m.ReadByte(source)
+		m.WriteByte(dest, b)
+
+		source++
+		dest++
 	}
 }
