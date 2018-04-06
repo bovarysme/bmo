@@ -2,6 +2,13 @@
 
 A Game Boy emulator written in Go.
 
+## Usage
+
+```
+$ go build
+$ ./bmo -path <path to the ROM file>
+```
+
 ## References
 
 - Game Boy Programming Manual
