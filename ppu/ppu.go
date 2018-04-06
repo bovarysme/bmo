@@ -42,7 +42,7 @@ func NewPPU(mmu *mmu.MMU) *PPU {
 	}
 }
 
-func (p *PPU) Step() {
+func (p *PPU) Step(cycles int) {
 	if !p.getFlag(LCDC, LCDEnable) {
 		return
 	}

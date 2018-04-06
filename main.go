@@ -23,11 +23,11 @@ func main() {
 	p := ppu.NewPPU(m)
 
 	for {
-		err = c.Step()
+		cycles, err := c.Step()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		p.Step()
+		p.Step(cycles)
 	}
 }

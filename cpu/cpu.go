@@ -171,13 +171,15 @@ func NewCPU(mmu *mmu.MMU) *CPU {
 	}
 }
 
-func (c *CPU) Step() error {
+func (c *CPU) Step() (int, error) {
+	c.cycles = 0
+
 	opcode := c.fetch()
 	fmt.Printf("opcode: %#x\n%#v\n\n", opcode, c)
 
 	err := c.decode(opcode)
 
-	return err
+	return c.cycles, err
 }
 
 func (c *CPU) fetch() byte {
