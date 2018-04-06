@@ -14,6 +14,11 @@ const (
 	zero
 )
 
+const (
+	interruptEnableAddress  uint16 = 0xffff
+	interruptRequestAddress        = 0xff0f
+)
+
 var cycles = [...]int{
 	1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1, // 0x0
 	1, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1, // 0x1
@@ -174,6 +179,13 @@ func NewCPU(mmu *mmu.MMU) *CPU {
 func (c *CPU) Step() (int, error) {
 	c.cycles = 0
 
+	if c.ime {
+		interrupted := c.handleInterrupts()
+		if interrupted {
+			return c.cycles, nil
+		}
+	}
+
 	opcode := c.fetch()
 	fmt.Printf("opcode: %#x\n%#v\n\n", opcode, c)
 
@@ -300,6 +312,8 @@ func (c *CPU) decode(opcode byte) error {
 		}
 	case 0xcd:
 		c.call()
+	case 0xd9:
+		c.reti()
 	case 0xe0:
 		c.sta8()
 	case 0xe2:
@@ -356,6 +370,33 @@ func (c *CPU) decodePrefix() error {
 	c.cycles += prefixCycles[opcode]
 
 	return nil
+}
+
+func (c *CPU) handleInterrupts() bool {
+	ie := c.mmu.ReadByte(interruptEnableAddress)
+	ir := c.mmu.ReadByte(interruptRequestAddress)
+
+	for i := 0; i <= 4; i++ {
+		var mask byte = 1 << byte(i)
+
+		enabled := ie&mask == mask
+		requested := ir&mask == mask
+
+		if enabled && requested {
+			c.cycles += 5
+			c.ime = false
+
+			ir &^= mask
+			c.mmu.WriteByte(interruptRequestAddress, ir)
+
+			c.pushStack(c.pc)
+			c.pc = 0x40 + uint16(i)*8
+
+			return true
+		}
+	}
+
+	return false
 }
 
 func (c *CPU) popStack() uint16 {
@@ -788,6 +829,11 @@ func (c *CPU) call() {
 	address := c.fetchWord()
 	c.pushStack(c.pc)
 	c.pc = address
+}
+
+func (c *CPU) reti() {
+	c.ime = true
+	c.pc = c.popStack()
 }
 
 func (c *CPU) sta8() {
