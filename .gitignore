@@ -1,5 +1,5 @@
 # ROMs
-*.gb
+roms/
 
 # Vim
 *.swp
