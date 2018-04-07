@@ -348,6 +348,8 @@ func (c *CPU) decodePrefix() error {
 		c.rlc(operand)
 	case opcode >= 0x08 && opcode <= 0x0f:
 		c.rrc(operand)
+	case opcode >= 0x10 && opcode <= 0x17:
+		c.rl(operand)
 	case opcode >= 0x20 && opcode <= 0x27:
 		c.sla(operand)
 	case opcode >= 0x30 && opcode <= 0x37:
@@ -895,6 +897,23 @@ func (c *CPU) rrc(operand Operand) {
 
 	bit := value & 1
 	value = bit<<7 | value>>1
+
+	operand.Set(value)
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	if value == 0 {
+		c.setFlags(zero)
+	}
+	if bit == 1 {
+		c.setFlags(carry)
+	}
+}
+
+func (c *CPU) rl(operand Operand) {
+	value := operand.Get()
+
+	bit := value >> 7
+	value = value<<1 | c.getFlags(carry)
 
 	operand.Set(value)
 
