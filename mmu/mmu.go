@@ -59,9 +59,7 @@ func (m *MMU) ReadWord(address uint16) uint16 {
 
 // XXX
 func (m *MMU) WriteByte(address uint16, value byte) {
-	if address >= IO && address < HRAM {
-		m.IO[address-IO] = value
-	} else if address >= VideoRAM && address < ExternalRAM {
+	if address >= VideoRAM && address < ExternalRAM {
 		m.VideoRAM[address-VideoRAM] = value
 	} else if address >= ExternalRAM && address < RAM {
 		m.ExternalRAM[address-ExternalRAM] = value
@@ -69,6 +67,8 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 		m.RAM[address-RAM] = value
 	} else if address >= OAMRAM && address < Unused {
 		m.OAMRAM[address-OAMRAM] = value
+	} else if address >= IO && address < HRAM {
+		m.IO[address-IO] = value
 	} else if address >= HRAM && address <= RAMSize {
 		m.HRAM[address-HRAM] = value
 	}

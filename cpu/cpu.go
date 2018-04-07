@@ -186,8 +186,9 @@ func (c *CPU) Step() (int, error) {
 		}
 	}
 
+	fmt.Printf("%#v\n", c)
 	opcode := c.fetch()
-	fmt.Printf("opcode: %#x\n%#v\n\n", opcode, c)
+	fmt.Printf("opcode: %#x\n\n", opcode)
 
 	err := c.decode(opcode)
 
@@ -274,6 +275,9 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, 0xce:
 		value := c.getSourceValue(opcode)
 		c.adc(value)
+	case 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0xd6:
+		value := c.getSourceValue(opcode)
+		c.sub(value)
 	case 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xe6:
 		value := c.getSourceValue(opcode)
 		c.and(value)
@@ -745,6 +749,24 @@ func (c *CPU) adc(value byte) {
 	}
 
 	c.a = byte(temp)
+
+	if c.a == 0 {
+		c.setFlags(zero)
+	}
+}
+
+func (c *CPU) sub(value byte) {
+	c.resetFlags(zero | halfCarry | carry)
+	c.setFlags(substract)
+
+	if c.a&0x0f < value&0x0f {
+		c.setFlags(halfCarry)
+	}
+	if c.a < value {
+		c.setFlags(carry)
+	}
+
+	c.a -= value
 
 	if c.a == 0 {
 		c.setFlags(zero)
