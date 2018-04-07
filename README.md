@@ -2,6 +2,10 @@
 
 A Game Boy emulator written in Go.
 
+## Requirements
+
+- SDL2
+
 ## Usage
 
 ```
