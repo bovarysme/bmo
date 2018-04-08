@@ -338,6 +338,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.lda8()
 	case 0xf3:
 		c.di()
+	case 0xf8:
+		c.ldsp()
 	case 0xfa:
 		c.lda16()
 	case 0xfb:
@@ -630,6 +632,7 @@ func (c *CPU) add16(operand ExtendedOperand) {
 	c.resetFlags(substract | halfCarry | carry)
 
 	temp := uint32(c.getHL()) + uint32(operand.Get())
+	// XXX
 	if temp>>12&1 == 1 {
 		c.setFlags(halfCarry)
 	}
@@ -679,7 +682,6 @@ func (c *CPU) rra() {
 }
 
 func (c *CPU) jrc(condition bool) {
-	// XXX: [-128; 127] when the docs say [-127; 129]
 	steps := int8(c.fetch())
 
 	if condition {
@@ -926,6 +928,22 @@ func (c *CPU) lda8() {
 
 func (c *CPU) di() {
 	c.ime = false
+}
+
+func (c *CPU) ldsp() {
+	steps := int8(c.fetch())
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	temp := uint32(c.sp) + uint32(steps)
+	// XXX
+	if temp>>12&1 == 1 {
+		c.setFlags(halfCarry)
+	}
+	if temp > 0xffff {
+		c.setFlags(carry)
+	}
+
+	c.setHL(uint16(temp))
 }
 
 func (c *CPU) lda16() {
