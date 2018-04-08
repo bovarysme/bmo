@@ -254,6 +254,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.rla()
 	case 0x18:
 		c.jr()
+	case 0x1f:
+		c.rra()
 	case 0x20, 0x28, 0x30, 0x38:
 		condition := c.decodeCondition(opcode)
 		c.jrc(condition)
@@ -664,6 +666,16 @@ func (c *CPU) jr() {
 
 	// XXX: is there a cleaner way to do this?
 	c.pc = uint16(int16(c.pc) + int16(steps))
+}
+
+func (c *CPU) rra() {
+	bit := c.a & 1
+	c.a = c.getFlags(carry)<<7 | c.a>>1
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	if bit == 1 {
+		c.setFlags(carry)
+	}
 }
 
 func (c *CPU) jrc(condition bool) {
