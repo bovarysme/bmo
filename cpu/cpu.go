@@ -241,6 +241,8 @@ func (c *CPU) decode(opcode byte) error {
 		operand := c.getDestOperand(opcode)
 		value := c.getSourceValue(opcode)
 		c.ld(operand, value)
+	case 0x08:
+		c.stspa16()
 	case 0x09, 0x19, 0x29, 0x39:
 		operand := c.getExtendedOperand(opcode)
 		c.add16(operand)
@@ -339,7 +341,7 @@ func (c *CPU) decode(opcode byte) error {
 	case 0xf3:
 		c.di()
 	case 0xf8:
-		c.ldsp()
+		c.stspr8()
 	case 0xfa:
 		c.lda16()
 	case 0xfb:
@@ -425,8 +427,7 @@ func (c *CPU) popStack() uint16 {
 }
 
 func (c *CPU) pushStack(value uint16) {
-	c.mmu.WriteByte(c.sp-1, byte(value>>8))
-	c.mmu.WriteByte(c.sp-2, byte(value&0xff))
+	c.mmu.WriteWord(c.sp-2, value)
 	c.sp -= 2
 }
 
@@ -626,6 +627,11 @@ func (c *CPU) dec(operand Operand) {
 
 func (c *CPU) ld(operand Operand, value byte) {
 	operand.Set(value)
+}
+
+func (c *CPU) stspa16() {
+	address := c.fetchWord()
+	c.mmu.WriteWord(address, c.sp)
 }
 
 func (c *CPU) add16(operand ExtendedOperand) {
@@ -930,7 +936,7 @@ func (c *CPU) di() {
 	c.ime = false
 }
 
-func (c *CPU) ldsp() {
+func (c *CPU) stspr8() {
 	steps := int8(c.fetch())
 
 	c.resetFlags(zero | substract | halfCarry | carry)

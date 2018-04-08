@@ -78,6 +78,11 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 	}
 }
 
+func (m *MMU) WriteWord(address, value uint16) {
+	m.WriteByte(address, byte(value&0xff))
+	m.WriteByte(address+1, byte(value>>8))
+}
+
 func (m *MMU) handleDMA(value byte) {
 	source := uint16(value) << 8
 	dest := uint16(OAMRAM)
