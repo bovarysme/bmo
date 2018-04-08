@@ -36,7 +36,7 @@ const (
 
 // Sound Control Registers
 const (
-	NR50 uint16 = 0xff24 + iota // Left Right Enable and Output Level (R/W)
+	NR50 uint16 = 0xff24 + iota // Left/Right Enable and Output Level (R/W)
 	NR51                        // Sound Output Terminal Selection (R/W)
 	NR52                        // Sound Enable
 )
