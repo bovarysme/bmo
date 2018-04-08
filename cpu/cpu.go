@@ -342,6 +342,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.di()
 	case 0xf8:
 		c.stspr8()
+	case 0xf9:
+		c.ldsp()
 	case 0xfa:
 		c.lda16()
 	case 0xfb:
@@ -950,6 +952,10 @@ func (c *CPU) stspr8() {
 	}
 
 	c.setHL(uint16(temp))
+}
+
+func (c *CPU) ldsp() {
+	c.sp = c.getHL()
 }
 
 func (c *CPU) lda16() {
