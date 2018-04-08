@@ -47,17 +47,21 @@ const (
 const (
 	ScreenWidth  = 160
 	ScreenHeight = 144
+	ColorDepth   = 4 // XXX: has to be 4 even with a RGB888 pixel format?
+
+	Pitch      = ScreenWidth * ColorDepth
+	bufferSize = ScreenWidth * ScreenHeight * ColorDepth
 )
 
-var Colors = map[byte][]byte{
-	0: []byte{255, 255, 255}, // White
-	3: []byte{128, 128, 128}, // Light gray
-	2: []byte{64, 64, 64},    // Dark gray
-	1: []byte{0, 0, 0},       // Black
+var Colors = [4][3]byte{
+	{255, 255, 255}, // White
+	{169, 169, 169}, // Light gray
+	{54, 54, 54},    // Dark gray
+	{0, 0, 0},       // Black
 }
 
 type PPU struct {
-	Screen [ScreenHeight][ScreenWidth]byte
+	Screen []byte
 	VBlank bool
 
 	mode   byte
@@ -68,23 +72,14 @@ type PPU struct {
 
 func NewPPU(mmu *mmu.MMU) *PPU {
 	return &PPU{
+		Screen: make([]byte, bufferSize),
+
 		mode: OAMSearch,
 
 		mmu: mmu,
 	}
 }
 
-/* Timings:
-OAM Search: 20 clocks
-Pixel Transfer: 43+ clocks (if displaying sprites or a window)
-H-Blank: 51 clocks
-
-114 x 154 = 17,556 clocks per screen
-(w/ 10 lines of V-Blank)
-
-Pixel Transfer: no CPU access to VRAM
-OAM Search & Pixel transfer: no CPU access to OAM RAM
-*/
 func (p *PPU) Step(cycles int) {
 	if !p.getFlag(LCDC, LCDEnable) {
 		return
@@ -149,10 +144,9 @@ func (p *PPU) requestInterrupt() {
 	p.mmu.WriteByte(address, ir)
 }
 
+// TODO: clean up
 func (p *PPU) transferLine(line byte) {
 	if p.getFlag(LCDC, BGEnable) {
-		mapLine := line + p.mmu.ReadByte(SCY)
-
 		var dataAddress uint16
 		if p.getFlag(LCDC, BGTileDataAddress) {
 			dataAddress = 0x8000
@@ -166,6 +160,8 @@ func (p *PPU) transferLine(line byte) {
 		} else {
 			mapAddress = 0x9800
 		}
+
+		mapLine := line + p.mmu.ReadByte(SCY)
 
 		// Tiles are 8 lines tall and maps 32 tiles wide (with one tile being
 		// one byte)
@@ -184,10 +180,15 @@ func (p *PPU) transferLine(line byte) {
 			low := byte(tileData & 0xff)
 
 			for j := 0; j < 8; j++ {
-				color := high>>(7-byte(j))&1 | low>>(7-byte(j))&1
+				colorNumber := high>>(7-byte(j))&1 | low>>(7-byte(j))&1
+				color := Colors[colorNumber]
 
 				x := i*8 + j
-				p.Screen[line][x] = color
+
+				index := Pitch*int(line) + ColorDepth*x
+				p.Screen[index] = color[0]
+				p.Screen[index+1] = color[1]
+				p.Screen[index+2] = color[2]
 			}
 		}
 	}

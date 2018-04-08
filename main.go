@@ -72,21 +72,14 @@ func main() {
 		if p.VBlank {
 			p.VBlank = false
 
-			for y := 0; y < ppu.ScreenHeight; y++ {
-				for x := 0; x < ppu.ScreenWidth; x++ {
-					colorIndex := p.Screen[y][x]
-					color := ppu.Colors[colorIndex]
+			err = texture.Update(nil, p.Screen, ppu.Pitch)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-					err = renderer.SetDrawColor(color[0], color[1], color[2], 255)
-					if err != nil {
-						log.Fatal(err)
-					}
-
-					err = renderer.DrawPoint(x, y)
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
+			err = renderer.Copy(texture, nil, nil)
+			if err != nil {
+				log.Fatal(err)
 			}
 
 			renderer.Present()
