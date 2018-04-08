@@ -186,9 +186,9 @@ func (c *CPU) Step() (int, error) {
 		}
 	}
 
-	fmt.Printf("%#v\n", c)
+	//fmt.Printf("%#v\n", c)
 	opcode := c.fetch()
-	fmt.Printf("opcode: %#x\n\n", opcode)
+	//fmt.Printf("opcode: %#x\n\n", opcode)
 
 	err := c.decode(opcode)
 
@@ -303,6 +303,10 @@ func (c *CPU) decode(opcode byte) error {
 		c.jpc(condition)
 	case 0xc3:
 		c.jp()
+	// TODO: merge with call?
+	case 0xc4, 0xcc, 0xd4, 0xdc:
+		condition := c.decodeCondition(opcode)
+		c.callc(condition)
 	case 0xc5, 0xd5, 0xe5, 0xf5:
 		operand := c.getExtendedOperand(opcode)
 		c.push(operand)
@@ -845,6 +849,16 @@ func (c *CPU) jpc(condition bool) {
 
 func (c *CPU) jp() {
 	c.pc = c.fetchWord()
+}
+
+func (c *CPU) callc(condition bool) {
+	address := c.fetchWord()
+
+	if condition {
+		c.cycles += 3
+		c.pushStack(c.pc)
+		c.pc = address
+	}
 }
 
 func (c *CPU) push(operand ExtendedOperand) {
