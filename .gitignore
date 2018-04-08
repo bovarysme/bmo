@@ -1,5 +1,7 @@
 # Go
 vendor/
+*.prof
+bmo
 
 # ROMs
 roms/
