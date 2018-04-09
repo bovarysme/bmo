@@ -349,6 +349,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.sta16()
 	case 0xf0:
 		c.lda8()
+	case 0xf2:
+		c.ldc()
 	case 0xf3:
 		c.di()
 	case 0xf8:
@@ -998,6 +1000,11 @@ func (c *CPU) sta16() {
 
 func (c *CPU) lda8() {
 	address := 0xff00 + uint16(c.fetch())
+	c.a = c.mmu.ReadByte(address)
+}
+
+func (c *CPU) ldc() {
+	address := 0xff00 + uint16(c.c)
 	c.a = c.mmu.ReadByte(address)
 }
 
