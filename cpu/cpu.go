@@ -593,6 +593,10 @@ func (c *CPU) getFlags(value byte) byte {
 	return result
 }
 
+func (c *CPU) hasFlags(value byte) bool {
+	return c.f&value == value
+}
+
 func (c *CPU) setFlags(value byte) {
 	c.f |= value
 }
@@ -756,8 +760,41 @@ func (c *CPU) sti() {
 	c.setHL(address)
 }
 
+// Modified from: http://forums.nesdev.com/viewtopic.php?t=9088
 func (c *CPU) daa() {
+	value := uint16(c.a)
 
+	if c.hasFlags(substract) {
+		if c.hasFlags(halfCarry) {
+			// `& 0xff` is required because if c.a < 6 and carry = 0, the carry
+			// flag would be wrongly set later on.
+			value = (value - 6) & 0xff
+		}
+
+		if c.hasFlags(carry) {
+			value -= 0x60
+		}
+	} else {
+		if c.hasFlags(halfCarry) || value&0xf > 9 {
+			value += 0x6
+		}
+
+		if c.hasFlags(carry) || value > 0x9f {
+			value += 0x60
+		}
+	}
+
+	c.resetFlags(zero | halfCarry)
+
+	if value > 0xff {
+		c.setFlags(carry)
+	}
+
+	c.a = byte(value)
+
+	if c.a == 0 {
+		c.setFlags(zero)
+	}
 }
 
 func (c *CPU) ldi() {
