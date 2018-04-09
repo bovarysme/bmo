@@ -254,6 +254,8 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x0b, 0x1b, 0x2b, 0x3b:
 		operand := c.getExtendedOperand(opcode)
 		c.dec16(operand)
+	case 0x10:
+		c.stop()
 	case 0x17:
 		c.rla()
 	case 0x18:
@@ -336,10 +338,12 @@ func (c *CPU) decode(opcode byte) error {
 		c.sta8()
 	case 0xe2:
 		c.stc()
-	case 0xea:
-		c.sta16()
+	case 0xe8:
+		c.addspr8()
 	case 0xe9:
 		c.jphl()
+	case 0xea:
+		c.sta16()
 	case 0xf0:
 		c.lda8()
 	case 0xf3:
@@ -676,6 +680,10 @@ func (c *CPU) dec16(operand ExtendedOperand) {
 	operand.Set(value)
 }
 
+func (c *CPU) stop() {
+	c.fetch()
+}
+
 func (c *CPU) rla() {
 	bit := c.a >> 7
 	c.a = c.a<<1 | c.getFlags(carry)
@@ -938,13 +946,29 @@ func (c *CPU) stc() {
 	c.mmu.WriteByte(address, c.a)
 }
 
-func (c *CPU) sta16() {
-	address := c.fetchWord()
-	c.mmu.WriteByte(address, c.a)
+func (c *CPU) addspr8() {
+	steps := int8(c.fetch())
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	temp := uint32(c.sp) + uint32(steps)
+	// XXX
+	if temp>>12&1 == 1 {
+		c.setFlags(halfCarry)
+	}
+	if temp > 0xffff {
+		c.setFlags(carry)
+	}
+
+	c.sp = uint16(temp)
 }
 
 func (c *CPU) jphl() {
 	c.pc = c.getHL()
+}
+
+func (c *CPU) sta16() {
+	address := c.fetchWord()
+	c.mmu.WriteByte(address, c.a)
 }
 
 func (c *CPU) lda8() {
