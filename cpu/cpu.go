@@ -241,6 +241,8 @@ func (c *CPU) decode(opcode byte) error {
 		operand := c.getDestOperand(opcode)
 		value := c.getSourceValue(opcode)
 		c.ld(operand, value)
+	case 0x07:
+		c.rlca()
 	case 0x08:
 		c.stspa16()
 	case 0x09, 0x19, 0x29, 0x39:
@@ -263,6 +265,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.jrc(condition)
 	case 0x22:
 		c.sti()
+	case 0x27:
+		c.daa()
 	case 0x2a:
 		c.ldi()
 	case 0x2f:
@@ -631,6 +635,16 @@ func (c *CPU) ld(operand Operand, value byte) {
 	operand.Set(value)
 }
 
+func (c *CPU) rlca() {
+	bit := c.a >> 7
+	c.a = c.a<<1 | bit
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	if bit == 1 {
+		c.setFlags(carry)
+	}
+}
+
 func (c *CPU) stspa16() {
 	address := c.fetchWord()
 	c.mmu.WriteWord(address, c.sp)
@@ -707,6 +721,10 @@ func (c *CPU) sti() {
 	address++
 
 	c.setHL(address)
+}
+
+func (c *CPU) daa() {
+
 }
 
 func (c *CPU) ldi() {
