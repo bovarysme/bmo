@@ -288,6 +288,9 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0xd6:
 		value := c.getSourceValue(opcode)
 		c.sub(value)
+	case 0x98, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f, 0xde:
+		value := c.getSourceValue(opcode)
+		c.sbc(value)
 	case 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7, 0xe6:
 		value := c.getSourceValue(opcode)
 		c.and(value)
@@ -776,6 +779,7 @@ func (c *CPU) add(value byte) {
 	c.resetFlags(zero | substract | halfCarry | carry)
 
 	temp := uint16(c.a) + uint16(value)
+	// XXX
 	if temp>>4&1 == 1 {
 		c.setFlags(halfCarry)
 	}
@@ -795,6 +799,7 @@ func (c *CPU) adc(value byte) {
 	temp := uint16(c.a) + uint16(value) + cy
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+	// XXX
 	if temp>>4&1 == 1 {
 		c.setFlags(halfCarry)
 	}
@@ -810,6 +815,26 @@ func (c *CPU) adc(value byte) {
 }
 
 func (c *CPU) sub(value byte) {
+	c.resetFlags(zero | halfCarry | carry)
+	c.setFlags(substract)
+
+	if c.a&0x0f < value&0x0f {
+		c.setFlags(halfCarry)
+	}
+	if c.a < value {
+		c.setFlags(carry)
+	}
+
+	c.a -= value
+
+	if c.a == 0 {
+		c.setFlags(zero)
+	}
+}
+
+func (c *CPU) sbc(value byte) {
+	value += c.getFlags(carry)
+
 	c.resetFlags(zero | halfCarry | carry)
 	c.setFlags(substract)
 
