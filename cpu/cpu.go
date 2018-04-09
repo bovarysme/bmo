@@ -809,11 +809,11 @@ func (c *CPU) ccf() {
 func (c *CPU) add(value byte) {
 	c.resetFlags(zero | substract | halfCarry | carry)
 
-	temp := uint16(c.a) + uint16(value)
-	// XXX
-	if temp>>4&1 == 1 {
+	if c.a&0xf+value&0xf > 0xf {
 		c.setFlags(halfCarry)
 	}
+
+	temp := uint16(c.a) + uint16(value)
 	if temp > 0xff {
 		c.setFlags(carry)
 	}
@@ -826,14 +826,15 @@ func (c *CPU) add(value byte) {
 }
 
 func (c *CPU) adc(value byte) {
-	cy := uint16(c.getFlags(carry))
-	temp := uint16(c.a) + uint16(value) + cy
+	cy := c.getFlags(carry)
 
 	c.resetFlags(zero | substract | halfCarry | carry)
-	// XXX
-	if temp>>4&1 == 1 {
+
+	if c.a&0xf+value&0xf+cy > 0xf {
 		c.setFlags(halfCarry)
 	}
+
+	temp := uint16(c.a) + uint16(value) + uint16(cy)
 	if temp > 0xff {
 		c.setFlags(carry)
 	}
@@ -849,7 +850,7 @@ func (c *CPU) sub(value byte) {
 	c.resetFlags(zero | halfCarry | carry)
 	c.setFlags(substract)
 
-	if c.a&0x0f < value&0x0f {
+	if c.a&0xf < value&0xf {
 		c.setFlags(halfCarry)
 	}
 	if c.a < value {
@@ -864,19 +865,21 @@ func (c *CPU) sub(value byte) {
 }
 
 func (c *CPU) sbc(value byte) {
-	value += c.getFlags(carry)
+	cy := c.getFlags(carry)
 
 	c.resetFlags(zero | halfCarry | carry)
 	c.setFlags(substract)
 
-	if c.a&0x0f < value&0x0f {
+	if c.a&0xf < value&0xf+cy {
 		c.setFlags(halfCarry)
 	}
-	if c.a < value {
+
+	temp := uint16(value) + uint16(cy)
+	if uint16(c.a) < temp {
 		c.setFlags(carry)
 	}
 
-	c.a -= value
+	c.a -= byte(temp)
 
 	if c.a == 0 {
 		c.setFlags(zero)
@@ -916,12 +919,13 @@ func (c *CPU) cp(value byte) {
 	c.resetFlags(zero | halfCarry | carry)
 	c.setFlags(substract)
 
-	if value < c.a {
-		c.setFlags(halfCarry)
-	} else if value == c.a {
+	if c.a == value {
 		c.setFlags(zero)
-	} else {
+	} else if c.a < value {
 		c.setFlags(carry)
+	}
+	if c.a&0xf < value&0xf {
+		c.setFlags(halfCarry)
 	}
 }
 
@@ -1176,7 +1180,7 @@ func (c *CPU) sra(operand Operand) {
 func (c *CPU) swap(operand Operand) {
 	value := operand.Get()
 
-	lower := value & 0x0f
+	lower := value & 0xf
 	value = lower<<4 | value>>4
 
 	operand.Set(value)
