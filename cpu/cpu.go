@@ -628,8 +628,12 @@ func (c *CPU) inc(operand Operand) {
 	c.resetFlags(zero | substract | halfCarry)
 
 	if value == 0 {
-		c.setFlags(zero | halfCarry)
+		c.setFlags(zero)
 	}
+	if value&0xf == 0 {
+		c.setFlags(halfCarry)
+	}
+
 }
 
 func (c *CPU) dec(operand Operand) {
@@ -641,7 +645,7 @@ func (c *CPU) dec(operand Operand) {
 
 	if value == 0 {
 		c.setFlags(zero)
-	} else if value == 0xff {
+	} else if value&0xf == 0xf {
 		c.setFlags(halfCarry)
 	}
 }
