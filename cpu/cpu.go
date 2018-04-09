@@ -254,6 +254,8 @@ func (c *CPU) decode(opcode byte) error {
 	case 0x0b, 0x1b, 0x2b, 0x3b:
 		operand := c.getExtendedOperand(opcode)
 		c.dec16(operand)
+	case 0x0f:
+		c.rrca()
 	case 0x10:
 		c.stop()
 	case 0x17:
@@ -683,6 +685,16 @@ func (c *CPU) dec16(operand ExtendedOperand) {
 	value := operand.Get()
 	value--
 	operand.Set(value)
+}
+
+func (c *CPU) rrca() {
+	bit := c.a & 1
+	c.a = bit<<7 | c.a>>1
+
+	c.resetFlags(zero | substract | halfCarry | carry)
+	if bit == 1 {
+		c.setFlags(carry)
+	}
 }
 
 func (c *CPU) stop() {
