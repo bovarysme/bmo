@@ -279,6 +279,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.std()
 	case 0x37:
 		c.scf()
+	case 0x3a:
+		c.ldd()
 	case 0x3f:
 		c.ccf()
 	case 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0xc6:
@@ -783,6 +785,15 @@ func (c *CPU) std() {
 func (c *CPU) scf() {
 	c.resetFlags(substract | halfCarry)
 	c.setFlags(carry)
+}
+
+func (c *CPU) ldd() {
+	address := c.getHL()
+	c.a = c.mmu.ReadByte(address)
+
+	address--
+
+	c.setHL(address)
 }
 
 // Flips the carry flag.
