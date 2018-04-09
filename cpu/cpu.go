@@ -463,13 +463,13 @@ func (c *CPU) decodeBit(opcode byte) byte {
 func (c *CPU) decodeCondition(opcode byte) bool {
 	switch opcode >> 3 & 0x3 {
 	case 0:
-		return c.f&zero == 0
+		return !c.hasFlags(zero)
 	case 1:
-		return c.f&zero == zero
+		return c.hasFlags(zero)
 	case 2:
-		return c.f&carry == 0
+		return !c.hasFlags(carry)
 	case 3:
-		return c.f&carry == carry
+		return c.hasFlags(carry)
 	}
 
 	return false
@@ -584,25 +584,25 @@ func (c *CPU) getSourceValue(opcode byte) byte {
 	return c.mmu.ReadByte(address)
 }
 
-func (c *CPU) getFlags(value byte) byte {
+func (c *CPU) getFlags(mask byte) byte {
 	var result byte
-	if c.f&value == value {
+	if c.hasFlags(mask) {
 		result = 1
 	}
 
 	return result
 }
 
-func (c *CPU) hasFlags(value byte) bool {
-	return c.f&value == value
+func (c *CPU) hasFlags(mask byte) bool {
+	return c.f&mask == mask
 }
 
-func (c *CPU) setFlags(value byte) {
-	c.f |= value
+func (c *CPU) setFlags(mask byte) {
+	c.f |= mask
 }
 
-func (c *CPU) resetFlags(value byte) {
-	c.f &^= value
+func (c *CPU) resetFlags(mask byte) {
+	c.f &^= mask
 }
 
 func (c *CPU) nop() {
