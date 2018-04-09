@@ -449,7 +449,7 @@ func (c *CPU) decodeAddress(opcode byte) uint16 {
 }
 
 func (c *CPU) decodeBit(opcode byte) byte {
-	return opcode >> 3 & 0x3
+	return opcode >> 3 & 0x7
 }
 
 func (c *CPU) decodeCondition(opcode byte) bool {
