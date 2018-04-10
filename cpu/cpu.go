@@ -307,20 +307,17 @@ func (c *CPU) decode(opcode byte) error {
 	case 0xb8, 0xb9, 0xba, 0xbb, 0xbc, 0xbd, 0xbe, 0xbf, 0xfe:
 		value := c.getSourceValue(opcode)
 		c.cp(value)
-	// TODO: merge with ret?
 	case 0xc0, 0xc8, 0xd0, 0xd8:
 		condition := c.decodeCondition(opcode)
 		c.retc(condition)
 	case 0xc1, 0xd1, 0xe1, 0xf1:
 		high, low := c.decodeRegisterPair(opcode)
 		c.pop(high, low)
-	// TODO: merge with jp?
 	case 0xc2, 0xca, 0xd2, 0xda:
 		condition := c.decodeCondition(opcode)
 		c.jpc(condition)
 	case 0xc3:
 		c.jp()
-	// TODO: merge with call?
 	case 0xc4, 0xcc, 0xd4, 0xdc:
 		condition := c.decodeCondition(opcode)
 		c.callc(condition)
@@ -584,6 +581,10 @@ func (c *CPU) getSourceValue(opcode byte) byte {
 	return c.mmu.ReadByte(address)
 }
 
+func (c *CPU) hasFlags(mask byte) bool {
+	return c.f&mask == mask
+}
+
 func (c *CPU) getFlags(mask byte) byte {
 	var result byte
 	if c.hasFlags(mask) {
@@ -591,10 +592,6 @@ func (c *CPU) getFlags(mask byte) byte {
 	}
 
 	return result
-}
-
-func (c *CPU) hasFlags(mask byte) bool {
-	return c.f&mask == mask
 }
 
 func (c *CPU) setFlags(mask byte) {
@@ -676,11 +673,14 @@ func (c *CPU) stspa16() {
 func (c *CPU) add16(operand ExtendedOperand) {
 	c.resetFlags(substract | halfCarry | carry)
 
-	temp := uint32(c.getHL()) + uint32(operand.Get())
-	// XXX
-	if temp>>12&1 == 1 {
+	hl := c.getHL()
+	value := operand.Get()
+
+	if hl&0xfff+value&0xfff > 0xfff {
 		c.setFlags(halfCarry)
 	}
+
+	temp := uint32(hl) + uint32(value)
 	if temp > 0xffff {
 		c.setFlags(carry)
 	}
@@ -724,10 +724,8 @@ func (c *CPU) rla() {
 }
 
 func (c *CPU) jr() {
-	steps := int8(c.fetch())
-
-	// XXX: is there a cleaner way to do this?
-	c.pc = uint16(int16(c.pc) + int16(steps))
+	steps := uint16(int8(c.fetch()))
+	c.pc += steps
 }
 
 func (c *CPU) rra() {
@@ -741,13 +739,11 @@ func (c *CPU) rra() {
 }
 
 func (c *CPU) jrc(condition bool) {
-	steps := int8(c.fetch())
+	steps := uint16(int8(c.fetch()))
 
 	if condition {
 		c.cycles++
-
-		// XXX: is there a cleaner way to do this?
-		c.pc = uint16(int16(c.pc) + int16(steps))
+		c.pc += steps
 	}
 }
 
@@ -1044,19 +1040,18 @@ func (c *CPU) stc() {
 }
 
 func (c *CPU) addspr8() {
-	steps := int8(c.fetch())
+	steps := uint16(int8(c.fetch()))
 
 	c.resetFlags(zero | substract | halfCarry | carry)
-	temp := uint32(c.sp) + uint32(steps)
-	// XXX
-	if temp>>12&1 == 1 {
+
+	if c.sp&0xf+steps&0xf > 0xf {
 		c.setFlags(halfCarry)
 	}
-	if temp > 0xffff {
+	if c.sp&0xff+steps&0xff > 0xff {
 		c.setFlags(carry)
 	}
 
-	c.sp = uint16(temp)
+	c.sp += steps
 }
 
 func (c *CPU) jphl() {
@@ -1083,19 +1078,18 @@ func (c *CPU) di() {
 }
 
 func (c *CPU) stspr8() {
-	steps := int8(c.fetch())
+	steps := uint16(int8(c.fetch()))
 
 	c.resetFlags(zero | substract | halfCarry | carry)
-	temp := uint32(c.sp) + uint32(steps)
-	// XXX
-	if temp>>12&1 == 1 {
+
+	if c.sp&0xf+steps&0xf > 0xf {
 		c.setFlags(halfCarry)
 	}
-	if temp > 0xffff {
+	if c.sp&0xff+steps&0xff > 0xff {
 		c.setFlags(carry)
 	}
 
-	c.setHL(uint16(temp))
+	c.setHL(c.sp + steps)
 }
 
 func (c *CPU) ldsp() {
