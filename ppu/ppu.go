@@ -61,7 +61,7 @@ var Colors = [4][3]byte{
 }
 
 type PPU struct {
-	Screen []byte
+	Pixels []byte
 	VBlank bool
 
 	mode   byte
@@ -72,7 +72,7 @@ type PPU struct {
 
 func NewPPU(mmu *mmu.MMU) *PPU {
 	return &PPU{
-		Screen: make([]byte, bufferSize),
+		Pixels: make([]byte, bufferSize),
 
 		mode: OAMSearch,
 
@@ -186,9 +186,9 @@ func (p *PPU) transferLine(line byte) {
 				x := i*8 + j
 
 				index := Pitch*int(line) + ColorDepth*x
-				p.Screen[index] = color[0]
-				p.Screen[index+1] = color[1]
-				p.Screen[index+2] = color[2]
+				p.Pixels[index] = color[0]
+				p.Pixels[index+1] = color[1]
+				p.Pixels[index+2] = color[2]
 			}
 		}
 	}
