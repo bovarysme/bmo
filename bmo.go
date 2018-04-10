@@ -2,12 +2,14 @@ package main
 
 import (
 	"github.com/bovarysme/bmo/cpu"
+	"github.com/bovarysme/bmo/interrupt"
 	"github.com/bovarysme/bmo/mmu"
 	"github.com/bovarysme/bmo/ppu"
 	"github.com/bovarysme/bmo/screen"
 )
 
 type BMO struct {
+	ic  *interrupt.IC
 	cpu *cpu.CPU
 	mmu *mmu.MMU
 	ppu *ppu.PPU
@@ -16,17 +18,19 @@ type BMO struct {
 }
 
 func NewBMO(rom []byte) (*BMO, error) {
-	m := mmu.NewMMU(rom)
-
 	s, err := screen.NewSDLScreen()
 	if err != nil {
 		return nil, err
 	}
 
+	m := mmu.NewMMU(rom)
+	ic := interrupt.NewIC(m)
+
 	return &BMO{
-		cpu: cpu.NewCPU(m),
+		ic:  ic,
+		cpu: cpu.NewCPU(m, ic),
 		mmu: m,
-		ppu: ppu.NewPPU(m),
+		ppu: ppu.NewPPU(m, ic),
 
 		screen: s,
 	}, nil

@@ -3,6 +3,7 @@ package cpu
 import (
 	"fmt"
 
+	"github.com/bovarysme/bmo/interrupt"
 	"github.com/bovarysme/bmo/mmu"
 )
 
@@ -12,11 +13,6 @@ const (
 	halfCarry
 	substract
 	zero
-)
-
-const (
-	interruptEnableAddress  uint16 = 0xffff
-	interruptRequestAddress        = 0xff0f
 )
 
 var cycles = [...]int{
@@ -155,10 +151,11 @@ type CPU struct {
 
 	cycles int
 
+	ic  *interrupt.IC
 	mmu *mmu.MMU
 }
 
-func NewCPU(mmu *mmu.MMU) *CPU {
+func NewCPU(mmu *mmu.MMU, ic *interrupt.IC) *CPU {
 	return &CPU{
 		a: 0x01,
 		f: 0xb0,
@@ -172,6 +169,7 @@ func NewCPU(mmu *mmu.MMU) *CPU {
 		sp: 0xfffe,
 		pc: 0x0100,
 
+		ic:  ic,
 		mmu: mmu,
 	}
 }
@@ -180,16 +178,20 @@ func (c *CPU) Step() (int, error) {
 	c.cycles = 0
 
 	if c.ime {
-		interrupted := c.handleInterrupts()
+		interrupted, kind := c.ic.Check()
 		if interrupted {
+			c.cycles += 5
+
+			c.ime = false
+
+			c.pushStack(c.pc)
+			c.pc = 0x40 + uint16(kind)*8
+
 			return c.cycles, nil
 		}
 	}
 
-	//fmt.Printf("%#v\n", c)
 	opcode := c.fetch()
-	//fmt.Printf("opcode: %#x\n\n", opcode)
-
 	err := c.decode(opcode)
 
 	return c.cycles, err
@@ -408,33 +410,6 @@ func (c *CPU) decodePrefix() error {
 	c.cycles += prefixCycles[opcode]
 
 	return nil
-}
-
-func (c *CPU) handleInterrupts() bool {
-	ie := c.mmu.ReadByte(interruptEnableAddress)
-	ir := c.mmu.ReadByte(interruptRequestAddress)
-
-	for i := 0; i <= 4; i++ {
-		var mask byte = 1 << byte(i)
-
-		enabled := ie&mask == mask
-		requested := ir&mask == mask
-
-		if enabled && requested {
-			c.cycles += 5
-			c.ime = false
-
-			ir &^= mask
-			c.mmu.WriteByte(interruptRequestAddress, ir)
-
-			c.pushStack(c.pc)
-			c.pc = 0x40 + uint16(i)*8
-
-			return true
-		}
-	}
-
-	return false
 }
 
 func (c *CPU) popStack() uint16 {

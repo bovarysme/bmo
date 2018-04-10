@@ -1,6 +1,7 @@
 package ppu
 
 import (
+	"github.com/bovarysme/bmo/interrupt"
 	"github.com/bovarysme/bmo/mmu"
 )
 
@@ -67,15 +68,17 @@ type PPU struct {
 	mode   byte
 	cycles int
 
+	ic  *interrupt.IC
 	mmu *mmu.MMU
 }
 
-func NewPPU(mmu *mmu.MMU) *PPU {
+func NewPPU(mmu *mmu.MMU, ic *interrupt.IC) *PPU {
 	return &PPU{
 		Pixels: make([]byte, bufferSize),
 
 		mode: OAMSearch,
 
+		ic:  ic,
 		mmu: mmu,
 	}
 }
@@ -117,7 +120,7 @@ func (p *PPU) updateMode(line byte) {
 			p.transferLine(line)
 		case VBlank:
 			p.VBlank = true
-			p.requestInterrupt()
+			p.ic.Request(interrupt.VBlank)
 		}
 	}
 }
@@ -133,15 +136,6 @@ func (p *PPU) updateLine(line byte) {
 
 		p.mmu.WriteByte(LY, line)
 	}
-}
-
-// TODO: clean up
-func (p *PPU) requestInterrupt() {
-	address := uint16(0xff0f)
-
-	ir := p.mmu.ReadByte(address)
-	ir |= 1
-	p.mmu.WriteByte(address, ir)
 }
 
 // TODO: clean up
