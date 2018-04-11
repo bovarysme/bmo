@@ -146,6 +146,7 @@ type CPU struct {
 	// Program counter
 	pc uint16
 
+	halted bool
 	// Interrupt Master Enable flag
 	ime bool
 
@@ -177,15 +178,27 @@ func NewCPU(mmu *mmu.MMU, ic *interrupt.IC) *CPU {
 func (c *CPU) Step() (int, error) {
 	c.cycles = 0
 
-	if c.ime {
+	if c.halted || c.ime {
 		interrupted, kind := c.ic.Check()
-		if interrupted {
-			c.cycles += 5
 
+		// While in HALT mode, if an interrupt is enabled and requested exit
+		// HALT mode and continue execution (either by handling the interrupt
+		// or executing the next instruction).
+		if c.halted && interrupted {
+			c.halted = false
+		} else if c.halted && !interrupted {
+			return 1, nil
+		}
+
+		if c.ime && interrupted {
 			c.ime = false
+
+			c.ic.Clear(1 << byte(kind))
 
 			c.pushStack(c.pc)
 			c.pc = 0x40 + uint16(kind)*8
+
+			c.cycles += 5
 
 			return c.cycles, nil
 		}
@@ -285,6 +298,8 @@ func (c *CPU) decode(opcode byte) error {
 		c.ldd()
 	case 0x3f:
 		c.ccf()
+	case 0x76:
+		c.halt()
 	case 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0xc6:
 		value := c.getSourceValue(opcode)
 		c.add(value)
@@ -812,6 +827,10 @@ func (c *CPU) ldd() {
 func (c *CPU) ccf() {
 	c.resetFlags(substract | halfCarry)
 	c.f ^= carry
+}
+
+func (c *CPU) halt() {
+	c.halted = true
 }
 
 func (c *CPU) add(value byte) {

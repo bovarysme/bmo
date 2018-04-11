@@ -40,14 +40,19 @@ func (ic *IC) Check() (bool, int) {
 		requested := ir&mask == mask
 
 		if enabled && requested {
-			ir &^= mask
-			ic.mmu.WriteByte(interruptRequestAddress, ir)
-
 			return true, i
 		}
 	}
 
 	return false, 0
+}
+
+func (ic *IC) Clear(mask byte) {
+	address := interruptRequestAddress
+
+	ir := ic.mmu.ReadByte(address)
+	ir &^= mask
+	ic.mmu.WriteByte(address, ir)
 }
 
 func (ic *IC) Request(mask byte) {
