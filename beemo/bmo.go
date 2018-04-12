@@ -1,4 +1,4 @@
-package main
+package beemo
 
 import (
 	"github.com/bovarysme/bmo/cpu"
@@ -9,11 +9,10 @@ import (
 )
 
 type BMO struct {
-	ic  *interrupt.IC
-	cpu *cpu.CPU
-	mmu *mmu.MMU
-	ppu *ppu.PPU
-
+	cpu    *cpu.CPU
+	ic     *interrupt.IC
+	mmu    *mmu.MMU
+	ppu    *ppu.PPU
 	screen screen.Screen
 }
 
@@ -27,13 +26,21 @@ func NewBMO(rom []byte) (*BMO, error) {
 	ic := interrupt.NewIC(m)
 
 	return &BMO{
-		ic:  ic,
-		cpu: cpu.NewCPU(m, ic),
-		mmu: m,
-		ppu: ppu.NewPPU(m, ic),
-
+		cpu:    cpu.NewCPU(m, ic),
+		ic:     ic,
+		mmu:    m,
+		ppu:    ppu.NewPPU(m, ic),
 		screen: s,
 	}, nil
+}
+
+func (b *BMO) String() string {
+	return b.cpu.String()
+}
+
+// XXX
+func (b *BMO) GetPC() uint16 {
+	return b.cpu.GetPC()
 }
 
 func (b *BMO) Step() error {

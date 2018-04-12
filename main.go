@@ -4,6 +4,8 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
+
+	"github.com/bovarysme/bmo/beemo"
 )
 
 var path string
@@ -22,7 +24,7 @@ func main() {
 
 	log.Printf("ROM size: %d bytes\n", len(rom))
 
-	bmo, err := NewBMO(rom)
+	bmo, err := beemo.NewBMO(rom)
 	if err != nil {
 		log.Fatal(err)
 	}
