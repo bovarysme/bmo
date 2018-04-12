@@ -6,11 +6,14 @@ import (
 	"log"
 
 	"github.com/bovarysme/bmo/beemo"
+	"github.com/bovarysme/bmo/debug"
 )
 
+var debugFlag bool
 var path string
 
 func init() {
+	flag.BoolVar(&debugFlag, "debug", false, "run the emulator in debug mode")
 	flag.StringVar(&path, "path", "", "path to the ROM file")
 
 	flag.Parse()
@@ -29,7 +32,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = bmo.Run()
+	if debugFlag {
+		debugger := debug.NewDebugger(bmo)
+		err = debugger.Run()
+	} else {
+		err = bmo.Run()
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}

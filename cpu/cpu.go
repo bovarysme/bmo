@@ -152,6 +152,9 @@ type CPU struct {
 
 	cycles int
 
+	lastOpcode       byte
+	lastPrefixOpcode byte
+
 	ic  *interrupt.IC
 	mmu *mmu.MMU
 }
@@ -173,6 +176,21 @@ func NewCPU(mmu *mmu.MMU, ic *interrupt.IC) *CPU {
 		ic:  ic,
 		mmu: mmu,
 	}
+}
+
+func (c *CPU) String() string {
+	mnemonic := getMnemonic(c.lastOpcode, c.lastPrefixOpcode)
+
+	return fmt.Sprintf("%s\n"+
+		"a: %#02x  f: %#02x  b: %#02x  c: %#02x  d: %#02x  e: %#02x  h: %#02x  l: %#02x\n"+
+		"sp: %#04x  pc: %#04x  halt: %t  ime: %t",
+		mnemonic,
+		c.a, c.f, c.b, c.c, c.d, c.e, c.h, c.l,
+		c.sp, c.pc, c.halted, c.ime)
+}
+
+func (c *CPU) GetPC() uint16 {
+	return c.pc
 }
 
 func (c *CPU) Step() (int, error) {
@@ -225,6 +243,8 @@ func (c *CPU) fetchWord() uint16 {
 }
 
 func (c *CPU) decode(opcode byte) error {
+	c.lastOpcode = opcode
+
 	switch opcode {
 	case 0x00:
 		c.nop()
@@ -391,6 +411,8 @@ func (c *CPU) decode(opcode byte) error {
 func (c *CPU) decodePrefix() error {
 	opcode := c.fetch()
 	operand := c.getSourceOperand(opcode)
+
+	c.lastPrefixOpcode = opcode
 
 	switch {
 	case opcode >= 0x00 && opcode <= 0x07:
