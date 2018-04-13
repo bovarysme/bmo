@@ -174,7 +174,7 @@ func (p *PPU) transferLine(line byte) {
 			low := byte(tileData & 0xff)
 
 			for j := 0; j < 8; j++ {
-				colorNumber := high>>(7-byte(j))&1 | low>>(7-byte(j))&1
+				colorNumber := high>>(7-byte(j))&1<<1 | low>>(7-byte(j))&1
 				color := Colors[colorNumber]
 
 				x := i*8 + j
