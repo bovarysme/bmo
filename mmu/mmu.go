@@ -1,5 +1,9 @@
 package mmu
 
+import (
+	"github.com/bovarysme/bmo/cartridge"
+)
+
 const (
 	ROM         = 0x0
 	VideoRAM    = 0x8000
@@ -17,7 +21,7 @@ const DMARegisterAddress uint16 = 0xff46
 
 // XXX
 type MMU struct {
-	ROM         []byte
+	cartridge   cartridge.Cartridge
 	VideoRAM    [ExternalRAM - VideoRAM]byte
 	ExternalRAM [RAM - ExternalRAM]byte
 	RAM         [Forbidden - RAM]byte
@@ -26,16 +30,16 @@ type MMU struct {
 	HRAM        [0x10000 - HRAM]byte
 }
 
-func NewMMU(rom []byte) *MMU {
+func NewMMU(cartridge cartridge.Cartridge) *MMU {
 	return &MMU{
-		ROM: rom,
+		cartridge: cartridge,
 	}
 }
 
 // XXX
 func (m *MMU) ReadByte(address uint16) byte {
 	if address >= ROM && address < VideoRAM {
-		return m.ROM[address]
+		return m.cartridge.ReadByte(address)
 	} else if address >= VideoRAM && address < ExternalRAM {
 		return m.VideoRAM[address-VideoRAM]
 	} else if address >= ExternalRAM && address < RAM {
@@ -59,7 +63,9 @@ func (m *MMU) ReadWord(address uint16) uint16 {
 
 // XXX
 func (m *MMU) WriteByte(address uint16, value byte) {
-	if address >= VideoRAM && address < ExternalRAM {
+	if address >= ROM && address < VideoRAM {
+		m.cartridge.WriteByte(address, value)
+	} else if address >= VideoRAM && address < ExternalRAM {
 		m.VideoRAM[address-VideoRAM] = value
 	} else if address >= ExternalRAM && address < RAM {
 		m.ExternalRAM[address-ExternalRAM] = value

@@ -1,6 +1,7 @@
 package beemo
 
 import (
+	"github.com/bovarysme/bmo/cartridge"
 	"github.com/bovarysme/bmo/cpu"
 	"github.com/bovarysme/bmo/interrupt"
 	"github.com/bovarysme/bmo/mmu"
@@ -9,11 +10,12 @@ import (
 )
 
 type BMO struct {
-	cpu    *cpu.CPU
-	ic     *interrupt.IC
-	mmu    *mmu.MMU
-	ppu    *ppu.PPU
-	screen screen.Screen
+	cartridge cartridge.Cartridge
+	cpu       *cpu.CPU
+	ic        *interrupt.IC
+	mmu       *mmu.MMU
+	ppu       *ppu.PPU
+	screen    screen.Screen
 }
 
 func NewBMO(rom []byte) (*BMO, error) {
@@ -22,15 +24,21 @@ func NewBMO(rom []byte) (*BMO, error) {
 		return nil, err
 	}
 
-	m := mmu.NewMMU(rom)
+	c, err := cartridge.NewCartridge(rom)
+	if err != nil {
+		return nil, err
+	}
+
+	m := mmu.NewMMU(c)
 	ic := interrupt.NewIC(m)
 
 	return &BMO{
-		cpu:    cpu.NewCPU(m, ic),
-		ic:     ic,
-		mmu:    m,
-		ppu:    ppu.NewPPU(m, ic),
-		screen: s,
+		cartridge: c,
+		cpu:       cpu.NewCPU(m, ic),
+		ic:        ic,
+		mmu:       m,
+		ppu:       ppu.NewPPU(m, ic),
+		screen:    s,
 	}, nil
 }
 
