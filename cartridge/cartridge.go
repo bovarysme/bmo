@@ -68,6 +68,8 @@ func NewCartridge(rom []byte) (Cartridge, error) {
 		cartridge = &ROM{
 			rom: rom,
 		}
+	case 0x01, 0x02, 0x03:
+		cartridge = NewMBC1(rom, header.RAMSize)
 	default:
 		return nil, &UnknownCartridgeTypeError{cartridgeType: header.Type}
 	}
@@ -85,4 +87,39 @@ func (r *ROM) ReadByte(address uint16) byte {
 
 func (r *ROM) WriteByte(address uint16, value byte) {
 
+}
+
+func getRAMInfo(ramType byte) (int, int) {
+	var banks, size int
+
+	switch ramType {
+	case 0:
+		banks, size = 0, 0
+	case 1:
+		banks, size = 1, 2048
+	case 2:
+		banks, size = 1, 8192
+	case 3:
+		banks, size = 4, 8192
+	case 4:
+		banks, size = 16, 8192
+	case 5:
+		banks, size = 8, 8192
+	}
+
+	return banks, size
+}
+
+func initRAM(ramType byte) [][]byte {
+	banks, size := getRAMInfo(ramType)
+	if size == 0 {
+		return nil
+	}
+
+	ram := make([][]byte, banks)
+	for i := range ram {
+		ram[i] = make([]byte, size)
+	}
+
+	return ram
 }

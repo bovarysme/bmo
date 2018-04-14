@@ -21,13 +21,12 @@ const DMARegisterAddress uint16 = 0xff46
 
 // XXX
 type MMU struct {
-	cartridge   cartridge.Cartridge
-	VideoRAM    [ExternalRAM - VideoRAM]byte
-	ExternalRAM [RAM - ExternalRAM]byte
-	RAM         [Forbidden - RAM]byte
-	OAMRAM      [Unused - OAMRAM]byte
-	IO          [HRAM - IO]byte
-	HRAM        [0x10000 - HRAM]byte
+	cartridge cartridge.Cartridge
+	VideoRAM  [ExternalRAM - VideoRAM]byte
+	RAM       [Forbidden - RAM]byte
+	OAMRAM    [Unused - OAMRAM]byte
+	IO        [HRAM - IO]byte
+	HRAM      [0x10000 - HRAM]byte
 }
 
 func NewMMU(cartridge cartridge.Cartridge) *MMU {
@@ -43,7 +42,7 @@ func (m *MMU) ReadByte(address uint16) byte {
 	} else if address >= VideoRAM && address < ExternalRAM {
 		return m.VideoRAM[address-VideoRAM]
 	} else if address >= ExternalRAM && address < RAM {
-		return m.ExternalRAM[address-ExternalRAM]
+		return m.cartridge.ReadByte(address)
 	} else if address >= RAM && address < Forbidden {
 		return m.RAM[address-RAM]
 	} else if address >= OAMRAM && address < Unused {
@@ -68,7 +67,7 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 	} else if address >= VideoRAM && address < ExternalRAM {
 		m.VideoRAM[address-VideoRAM] = value
 	} else if address >= ExternalRAM && address < RAM {
-		m.ExternalRAM[address-ExternalRAM] = value
+		m.cartridge.WriteByte(address, value)
 	} else if address >= RAM && address < Forbidden {
 		m.RAM[address-RAM] = value
 	} else if address >= OAMRAM && address < Unused {
