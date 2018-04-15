@@ -8,29 +8,45 @@ import (
 )
 
 const (
-	ROM         = 0x0
-	VideoRAM    = 0x8000
-	ExternalRAM = 0xa000
-	RAM         = 0xc000
-	Forbidden   = 0xe000
-	OAMRAM      = 0xfe00
-	Unused      = 0xfea0
-	IO          = 0xff00
-	HRAM        = 0xff80
-	RAMSize     = 0xffff
+	romStart = 0
+	romEnd   = 0x7fff
+	romSize  = romEnd - romStart + 1
+
+	vramStart = 0x8000
+	vramEnd   = 0x9fff
+	vramSize  = vramEnd - vramStart + 1
+
+	externalRAMStart = 0xa000
+	externalRAMEnd   = 0xbfff
+	externalRAMSize  = externalRAMEnd - externalRAMStart + 1
+
+	wramStart = 0xc000
+	wramEnd   = 0xdfff
+	wramSize  = wramEnd - wramStart + 1
+
+	oamRAMStart = 0xfe00
+	oamRAMEnd   = 0xfe9f
+	oamRAMSize  = oamRAMEnd - oamRAMStart + 1
+
+	ioStart = 0xff00
+	ioEnd   = 0xff7f
+	ioSize  = ioEnd - ioStart + 1
+
+	hramStart = 0xff80
+	hramEnd   = 0xffff
+	hramSize  = hramEnd - hramStart + 1
 )
 
-const DMARegisterAddress uint16 = 0xff46
+const dmaRegisterAddress uint16 = 0xff46
 
-// XXX
 type MMU struct {
 	bootrom   []byte
 	cartridge cartridge.Cartridge
-	VideoRAM  [ExternalRAM - VideoRAM]byte
-	RAM       [Forbidden - RAM]byte
-	OAMRAM    [Unused - OAMRAM]byte
-	IO        [HRAM - IO]byte
-	HRAM      [0x10000 - HRAM]byte
+	vram      [vramSize]byte
+	wram      [wramSize]byte
+	oamRAM    [oamRAMSize]byte
+	io        [ioSize]byte
+	hram      [hramSize]byte
 }
 
 func NewMMU(cartridge cartridge.Cartridge) (*MMU, error) {
@@ -49,55 +65,82 @@ func NewMMU(cartridge cartridge.Cartridge) (*MMU, error) {
 	}, nil
 }
 
-// XXX
 func (m *MMU) ReadByte(address uint16) byte {
-	if address >= ROM && address < VideoRAM {
-		bootrom := m.ReadByte(0xff50)
-		if address < 0x100 && bootrom == 0 {
-			return m.bootrom[address]
+	var value byte
+
+	switch {
+	case address >= romStart && address <= romEnd:
+		if address < 0x100 && m.io[0x50] == 0 {
+			value = m.bootrom[address]
 		} else {
-			return m.cartridge.ReadByte(address)
+			value = m.cartridge.ReadByte(address)
 		}
-	} else if address >= VideoRAM && address < ExternalRAM {
-		return m.VideoRAM[address-VideoRAM]
-	} else if address >= ExternalRAM && address < RAM {
-		return m.cartridge.ReadByte(address)
-	} else if address >= RAM && address < Forbidden {
-		return m.RAM[address-RAM]
-	} else if address >= OAMRAM && address < Unused {
-		return m.OAMRAM[address-OAMRAM]
-	} else if address >= IO && address < HRAM {
-		return m.IO[address-IO]
-	} else if address >= HRAM && address <= RAMSize {
-		return m.HRAM[address-HRAM]
+	case address >= vramStart && address <= vramEnd:
+		address -= vramStart
+		value = m.vram[address]
+
+	case address >= externalRAMStart && address <= externalRAMEnd:
+		value = m.cartridge.ReadByte(address)
+
+	case address >= wramStart && address <= wramEnd:
+		address -= wramStart
+		value = m.wram[address]
+
+	case address >= oamRAMStart && address <= oamRAMEnd:
+		address -= oamRAMStart
+		value = m.oamRAM[address]
+
+	case address >= ioStart && address <= ioEnd:
+		address -= ioStart
+		value = m.io[address]
+
+	case address >= hramStart && address <= hramEnd:
+		address -= hramStart
+		value = m.hram[address]
 	}
 
-	return 0
+	return value
 }
 
 func (m *MMU) ReadWord(address uint16) uint16 {
 	return uint16(m.ReadByte(address+1))<<8 | uint16(m.ReadByte(address))
 }
 
-// XXX
 func (m *MMU) WriteByte(address uint16, value byte) {
-	if address >= ROM && address < VideoRAM {
+	switch {
+	case address >= romStart && address <= romEnd:
 		m.cartridge.WriteByte(address, value)
-	} else if address >= VideoRAM && address < ExternalRAM {
-		m.VideoRAM[address-VideoRAM] = value
-	} else if address >= ExternalRAM && address < RAM {
+
+	case address >= vramStart && address <= vramEnd:
+		address -= vramStart
+		m.vram[address] = value
+
+	case address >= externalRAMStart && address <= externalRAMEnd:
 		m.cartridge.WriteByte(address, value)
-	} else if address >= RAM && address < Forbidden {
-		m.RAM[address-RAM] = value
-	} else if address >= OAMRAM && address < Unused {
-		m.OAMRAM[address-OAMRAM] = value
-	} else if address >= IO && address < HRAM {
-		m.IO[address-IO] = value
-	} else if address >= HRAM && address <= RAMSize {
-		m.HRAM[address-HRAM] = value
+
+	case address >= wramStart && address <= wramEnd:
+		address -= wramStart
+		m.wram[address] = value
+
+	case address >= oamRAMStart && address <= oamRAMEnd:
+		address -= oamRAMStart
+		m.oamRAM[address] = value
+
+	case address >= ioStart && address <= ioEnd:
+		// XXX
+		if address == 0xff00 {
+			value |= 0xf
+		}
+
+		address -= ioStart
+		m.io[address] = value
+
+	case address >= hramStart && address <= hramEnd:
+		address -= hramStart
+		m.hram[address] = value
 	}
 
-	if address == DMARegisterAddress {
+	if address == dmaRegisterAddress {
 		m.handleDMA(value)
 	}
 }
@@ -109,7 +152,7 @@ func (m *MMU) WriteWord(address, value uint16) {
 
 func (m *MMU) handleDMA(value byte) {
 	source := uint16(value) << 8
-	dest := uint16(OAMRAM)
+	dest := uint16(oamRAMStart)
 
 	for i := 0; i < 0xa0; i++ {
 		b := m.ReadByte(source)
