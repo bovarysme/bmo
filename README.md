@@ -18,6 +18,9 @@ A Game Boy emulator written in Go.
 
 ## Usage
 
+- Copy the DMG bootrom to `roms/bootrom.gb`
+- Compile and run the emulator:
+
 ```
 $ go build
 $ ./bmo -path <path to the ROM file>

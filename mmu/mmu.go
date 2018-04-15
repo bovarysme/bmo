@@ -1,6 +1,9 @@
 package mmu
 
 import (
+	"errors"
+	"io/ioutil"
+
 	"github.com/bovarysme/bmo/cartridge"
 )
 
@@ -21,6 +24,7 @@ const DMARegisterAddress uint16 = 0xff46
 
 // XXX
 type MMU struct {
+	bootrom   []byte
 	cartridge cartridge.Cartridge
 	VideoRAM  [ExternalRAM - VideoRAM]byte
 	RAM       [Forbidden - RAM]byte
@@ -29,16 +33,31 @@ type MMU struct {
 	HRAM      [0x10000 - HRAM]byte
 }
 
-func NewMMU(cartridge cartridge.Cartridge) *MMU {
-	return &MMU{
-		cartridge: cartridge,
+func NewMMU(cartridge cartridge.Cartridge) (*MMU, error) {
+	bootrom, err := ioutil.ReadFile("roms/bootrom.gb")
+	if err != nil {
+		return nil, err
 	}
+
+	if len(bootrom) != 256 {
+		return nil, errors.New("Invalid bootrom size")
+	}
+
+	return &MMU{
+		bootrom:   bootrom,
+		cartridge: cartridge,
+	}, nil
 }
 
 // XXX
 func (m *MMU) ReadByte(address uint16) byte {
 	if address >= ROM && address < VideoRAM {
-		return m.cartridge.ReadByte(address)
+		bootrom := m.ReadByte(0xff50)
+		if address < 0x100 && bootrom == 0 {
+			return m.bootrom[address]
+		} else {
+			return m.cartridge.ReadByte(address)
+		}
 	} else if address >= VideoRAM && address < ExternalRAM {
 		return m.VideoRAM[address-VideoRAM]
 	} else if address >= ExternalRAM && address < RAM {

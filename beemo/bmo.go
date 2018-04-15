@@ -29,7 +29,11 @@ func NewBMO(rom []byte) (*BMO, error) {
 		return nil, err
 	}
 
-	m := mmu.NewMMU(c)
+	m, err := mmu.NewMMU(c)
+	if err != nil {
+		return nil, err
+	}
+
 	ic := interrupt.NewIC(m)
 
 	return &BMO{

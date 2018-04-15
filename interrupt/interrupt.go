@@ -33,7 +33,7 @@ func (ic *IC) Check() (bool, int) {
 	ie := ic.mmu.ReadByte(interruptEnableAddress)
 	ir := ic.mmu.ReadByte(interruptRequestAddress)
 
-	for i := 0; i <= 4; i++ {
+	for i := 0; i < 5; i++ {
 		var mask byte = 1 << byte(i)
 
 		enabled := ie&mask == mask
