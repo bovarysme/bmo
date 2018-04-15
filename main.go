@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"log"
 
 	"github.com/bovarysme/bmo/beemo"
@@ -10,24 +9,17 @@ import (
 )
 
 var debugFlag bool
-var path string
+var romPath string
 
 func init() {
 	flag.BoolVar(&debugFlag, "debug", false, "run the emulator in debug mode")
-	flag.StringVar(&path, "path", "", "path to the ROM file")
+	flag.StringVar(&romPath, "rom", "", "path to the ROM file")
 
 	flag.Parse()
 }
 
 func main() {
-	rom, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("ROM size: %d bytes\n", len(rom))
-
-	bmo, err := beemo.NewBMO(rom)
+	bmo, err := beemo.NewBMO(romPath)
 	if err != nil {
 		log.Fatal(err)
 	}

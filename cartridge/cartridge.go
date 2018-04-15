@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"log"
 )
 
 const (
@@ -51,7 +53,13 @@ type Cartridge interface {
 	WriteByte(address uint16, value byte)
 }
 
-func NewCartridge(rom []byte) (Cartridge, error) {
+func NewCartridge(romPath string) (Cartridge, error) {
+	rom, err := ioutil.ReadFile(romPath)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("ROM size: %d bytes\n", len(rom))
+
 	if len(rom) < headerEnd {
 		return nil, errors.New("Invalid ROM size")
 	}
@@ -60,6 +68,7 @@ func NewCartridge(rom []byte) (Cartridge, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("ROM type: %#x\n", header.Type)
 
 	var cartridge Cartridge
 

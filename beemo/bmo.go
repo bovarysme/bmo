@@ -18,13 +18,13 @@ type BMO struct {
 	screen    screen.Screen
 }
 
-func NewBMO(rom []byte) (*BMO, error) {
+func NewBMO(romPath string) (*BMO, error) {
 	s, err := screen.NewSDLScreen()
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := cartridge.NewCartridge(rom)
+	c, err := cartridge.NewCartridge(romPath)
 	if err != nil {
 		return nil, err
 	}

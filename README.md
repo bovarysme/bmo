@@ -23,7 +23,7 @@ A Game Boy emulator written in Go.
 
 ```
 $ go build
-$ ./bmo -path <path to the ROM file>
+$ ./bmo -rom <path to the ROM file>
 ```
 
 ## References
