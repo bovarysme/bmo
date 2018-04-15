@@ -49,8 +49,8 @@ type MMU struct {
 	hram      [hramSize]byte
 }
 
-func NewMMU(cartridge cartridge.Cartridge) (*MMU, error) {
-	bootrom, err := ioutil.ReadFile("roms/bootrom.gb")
+func NewMMU(bootromPath string, cartridge cartridge.Cartridge) (*MMU, error) {
+	bootrom, err := ioutil.ReadFile(bootromPath)
 	if err != nil {
 		return nil, err
 	}
