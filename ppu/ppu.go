@@ -156,14 +156,22 @@ func (p *PPU) transferLine(line byte) {
 		}
 
 		mapLine := line + p.mmu.ReadByte(SCY)
+		mapCol := p.mmu.ReadByte(SCX)
 
 		// Tiles are 8 lines tall and maps 32 tiles wide (with one tile being
 		// one byte)
 		mapOffset := mapAddress + uint16(mapLine)/8*32
 
+		paletteData := p.mmu.ReadByte(BGP)
+		var palette [4]byte
+		for i := uint(0); i < 4; i++ {
+			palette[i] = paletteData >> (i * 2) & 0x3
+		}
+
 		// The screen is 20 tiles wide
 		for i := 0; i < 20; i++ {
-			address := mapOffset + uint16(i)
+			var temp byte = (byte(i)*8 + mapCol) / 8
+			address := mapOffset + uint16(temp)
 			tileNumber := p.mmu.ReadByte(address)
 
 			// Tile data = 16 bytes
@@ -175,7 +183,7 @@ func (p *PPU) transferLine(line byte) {
 
 			for j := 0; j < 8; j++ {
 				colorNumber := high>>(7-byte(j))&1<<1 | low>>(7-byte(j))&1
-				color := Colors[colorNumber]
+				color := Colors[palette[colorNumber]]
 
 				x := i*8 + j
 
