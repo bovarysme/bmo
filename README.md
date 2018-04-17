@@ -10,7 +10,7 @@ A Game Boy emulator written in Go.
 ![Blargg's CPU instruction test passed](docs/cpu_instr.png)
 
 - Interrupt Controller
-- PPU (background rendering, scrolling on the Y axis)
+- PPU (background and window rendering, scrolling)
 
 ## Requirements
 
@@ -23,6 +23,7 @@ A Game Boy emulator written in Go.
 - Compile and run the emulator:
 
 ```
+$ dep ensure
 $ go build
 $ ./bmo -rom <path to the ROM file>
 ```
