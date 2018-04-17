@@ -172,10 +172,16 @@ func (p *PPU) transferLine(line byte) {
 		for i := 0; i < 20; i++ {
 			var temp byte = (byte(i)*8 + mapCol) / 8
 			address := mapOffset + uint16(temp)
-			tileNumber := p.mmu.ReadByte(address)
+
+			var tileNumber uint16
+			if dataAddress == 0x8800 {
+				tileNumber = uint16(int8(p.mmu.ReadByte(address))) + 128
+			} else {
+				tileNumber = uint16(p.mmu.ReadByte(address))
+			}
 
 			// Tile data = 16 bytes
-			dataOffset := dataAddress + uint16(tileNumber)*16 + uint16(mapLine)%8*2
+			dataOffset := dataAddress + tileNumber*16 + uint16(mapLine)%8*2
 			tileData := p.mmu.ReadWord(dataOffset)
 
 			high := byte(tileData >> 8)
