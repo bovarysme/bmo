@@ -7,7 +7,7 @@ A Game Boy emulator written in Go.
 - Cartridges (ROM only, MBC1)
 - CPU (passes Blargg's CPU instruction test)
 
-![Blargg's CPU instruction test passed](docs/cpu_instr.png)
+![Blargg's CPU instruction test passed](docs/cpu_instrs.png)
 
 - Interrupt Controller
 - PPU (background and window rendering, scrolling)
