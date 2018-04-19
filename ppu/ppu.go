@@ -65,11 +65,14 @@ type PPU struct {
 	Pixels []byte
 	VBlank bool
 
-	mode   byte
-	cycles int
-
 	ic  *interrupt.IC
 	mmu *mmu.MMU
+
+	vram   [mmu.VRAMSize]byte
+	oamRAM [mmu.OAMRAMSize]byte
+
+	mode   byte
+	cycles int
 }
 
 func NewPPU(mmu *mmu.MMU, ic *interrupt.IC) *PPU {
@@ -93,6 +96,34 @@ func (p *PPU) Step(cycles int) {
 	p.updateLine(line)
 
 	p.cycles += cycles
+}
+
+func (p *PPU) ReadByte(address uint16) byte {
+	var value byte
+
+	switch {
+	case address >= mmu.VRAMStart && address <= mmu.VRAMEnd:
+		address -= mmu.VRAMStart
+		value = p.vram[address]
+
+	case address >= mmu.OAMRAMStart && address <= mmu.OAMRAMEnd:
+		address -= mmu.OAMRAMStart
+		value = p.oamRAM[address]
+	}
+
+	return value
+}
+
+func (p *PPU) WriteByte(address uint16, value byte) {
+	switch {
+	case address >= mmu.VRAMStart && address <= mmu.VRAMEnd:
+		address -= mmu.VRAMStart
+		p.vram[address] = value
+
+	case address >= mmu.OAMRAMStart && address <= mmu.OAMRAMEnd:
+		address -= mmu.OAMRAMStart
+		p.oamRAM[address] = value
+	}
 }
 
 func (p *PPU) updateMode(line byte) {
@@ -205,6 +236,7 @@ func (p *PPU) transferBGOrWindow(mapMask, line, mapLine byte, mapColumn, start i
 	}
 }
 
+// TODO: clean up
 func (p *PPU) transferLine(line byte) {
 	if p.getFlag(LCDC, BGEnable) {
 		mapLine := line + p.mmu.ReadByte(SCY)

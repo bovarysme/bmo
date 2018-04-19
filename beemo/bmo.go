@@ -36,12 +36,17 @@ func NewBMO(bootromPath, romPath string) (*BMO, error) {
 
 	ic := interrupt.NewIC(m)
 
+	p := ppu.NewPPU(m, ic)
+
+	// XXX
+	m.LinkPPU(p)
+
 	return &BMO{
 		cartridge: c,
 		cpu:       cpu.NewCPU(m, ic),
 		ic:        ic,
 		mmu:       m,
-		ppu:       ppu.NewPPU(m, ic),
+		ppu:       p,
 		screen:    s,
 	}, nil
 }

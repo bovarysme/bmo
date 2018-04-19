@@ -3,8 +3,6 @@ package mmu
 import (
 	"errors"
 	"io/ioutil"
-
-	"github.com/bovarysme/bmo/cartridge"
 )
 
 const (
@@ -12,9 +10,9 @@ const (
 	romEnd   = 0x7fff
 	romSize  = romEnd - romStart + 1
 
-	vramStart = 0x8000
-	vramEnd   = 0x9fff
-	vramSize  = vramEnd - vramStart + 1
+	VRAMStart = 0x8000
+	VRAMEnd   = 0x9fff
+	VRAMSize  = VRAMEnd - VRAMStart + 1
 
 	externalRAMStart = 0xa000
 	externalRAMEnd   = 0xbfff
@@ -24,9 +22,9 @@ const (
 	wramEnd   = 0xdfff
 	wramSize  = wramEnd - wramStart + 1
 
-	oamRAMStart = 0xfe00
-	oamRAMEnd   = 0xfe9f
-	oamRAMSize  = oamRAMEnd - oamRAMStart + 1
+	OAMRAMStart = 0xfe00
+	OAMRAMEnd   = 0xfe9f
+	OAMRAMSize  = OAMRAMEnd - OAMRAMStart + 1
 
 	ioStart = 0xff00
 	ioEnd   = 0xff7f
@@ -39,17 +37,22 @@ const (
 
 const dmaRegisterAddress uint16 = 0xff46
 
-type MMU struct {
-	bootrom   []byte
-	cartridge cartridge.Cartridge
-	vram      [vramSize]byte
-	wram      [wramSize]byte
-	oamRAM    [oamRAMSize]byte
-	io        [ioSize]byte
-	hram      [hramSize]byte
+type Memory interface {
+	ReadByte(address uint16) byte
+	WriteByte(address uint16, value byte)
 }
 
-func NewMMU(bootromPath string, cartridge cartridge.Cartridge) (*MMU, error) {
+type MMU struct {
+	bootrom   []byte
+	cartridge Memory
+	ppu       Memory
+
+	wram [wramSize]byte
+	io   [ioSize]byte
+	hram [hramSize]byte
+}
+
+func NewMMU(bootromPath string, cartridge Memory) (*MMU, error) {
 	bootrom, err := ioutil.ReadFile(bootromPath)
 	if err != nil {
 		return nil, err
@@ -65,6 +68,11 @@ func NewMMU(bootromPath string, cartridge cartridge.Cartridge) (*MMU, error) {
 	}, nil
 }
 
+// XXX
+func (m *MMU) LinkPPU(ppu Memory) {
+	m.ppu = ppu
+}
+
 func (m *MMU) ReadByte(address uint16) byte {
 	var value byte
 
@@ -75,9 +83,8 @@ func (m *MMU) ReadByte(address uint16) byte {
 		} else {
 			value = m.cartridge.ReadByte(address)
 		}
-	case address >= vramStart && address <= vramEnd:
-		address -= vramStart
-		value = m.vram[address]
+	case address >= VRAMStart && address <= VRAMEnd:
+		value = m.ppu.ReadByte(address)
 
 	case address >= externalRAMStart && address <= externalRAMEnd:
 		value = m.cartridge.ReadByte(address)
@@ -86,9 +93,8 @@ func (m *MMU) ReadByte(address uint16) byte {
 		address -= wramStart
 		value = m.wram[address]
 
-	case address >= oamRAMStart && address <= oamRAMEnd:
-		address -= oamRAMStart
-		value = m.oamRAM[address]
+	case address >= OAMRAMStart && address <= OAMRAMEnd:
+		value = m.ppu.ReadByte(address)
 
 	case address >= ioStart && address <= ioEnd:
 		address -= ioStart
@@ -111,9 +117,8 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 	case address >= romStart && address <= romEnd:
 		m.cartridge.WriteByte(address, value)
 
-	case address >= vramStart && address <= vramEnd:
-		address -= vramStart
-		m.vram[address] = value
+	case address >= VRAMStart && address <= VRAMEnd:
+		m.ppu.WriteByte(address, value)
 
 	case address >= externalRAMStart && address <= externalRAMEnd:
 		m.cartridge.WriteByte(address, value)
@@ -122,9 +127,8 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 		address -= wramStart
 		m.wram[address] = value
 
-	case address >= oamRAMStart && address <= oamRAMEnd:
-		address -= oamRAMStart
-		m.oamRAM[address] = value
+	case address >= OAMRAMStart && address <= OAMRAMEnd:
+		m.ppu.WriteByte(address, value)
 
 	case address >= ioStart && address <= ioEnd:
 		// XXX
@@ -152,7 +156,7 @@ func (m *MMU) WriteWord(address, value uint16) {
 
 func (m *MMU) handleDMA(value byte) {
 	source := uint16(value) << 8
-	dest := uint16(oamRAMStart)
+	dest := uint16(OAMRAMStart)
 
 	for i := 0; i < 0xa0; i++ {
 		b := m.ReadByte(source)
