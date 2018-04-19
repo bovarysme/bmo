@@ -7,6 +7,7 @@ import (
 	"github.com/bovarysme/bmo/mmu"
 	"github.com/bovarysme/bmo/ppu"
 	"github.com/bovarysme/bmo/screen"
+	"github.com/bovarysme/bmo/timer"
 )
 
 type BMO struct {
@@ -16,6 +17,7 @@ type BMO struct {
 	mmu       *mmu.MMU
 	ppu       *ppu.PPU
 	screen    screen.Screen
+	timer     *timer.Timer
 }
 
 func NewBMO(bootromPath, romPath string) (*BMO, error) {
@@ -48,6 +50,7 @@ func NewBMO(bootromPath, romPath string) (*BMO, error) {
 		mmu:       m,
 		ppu:       p,
 		screen:    s,
+		timer:     timer.NewTimer(m, ic),
 	}, nil
 }
 
@@ -75,6 +78,8 @@ func (b *BMO) Step() error {
 			return err
 		}
 	}
+
+	b.timer.Step(cycles)
 
 	return nil
 }
