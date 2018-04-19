@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+
+	"github.com/bovarysme/bmo/mmu"
 )
 
 const (
@@ -48,12 +50,7 @@ func NewHeader(data []byte) (*Header, error) {
 	return header, nil
 }
 
-type Cartridge interface {
-	ReadByte(address uint16) byte
-	WriteByte(address uint16, value byte)
-}
-
-func NewCartridge(romPath string) (Cartridge, error) {
+func NewCartridge(romPath string) (mmu.Memory, error) {
 	rom, err := ioutil.ReadFile(romPath)
 	if err != nil {
 		return nil, err
@@ -70,7 +67,7 @@ func NewCartridge(romPath string) (Cartridge, error) {
 	}
 	log.Printf("ROM type: %#x\n", header.Type)
 
-	var cartridge Cartridge
+	var cartridge mmu.Memory
 
 	switch header.Type {
 	case 0x00:

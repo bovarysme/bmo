@@ -10,7 +10,7 @@ import (
 )
 
 type BMO struct {
-	cartridge cartridge.Cartridge
+	cartridge mmu.Memory
 	cpu       *cpu.CPU
 	ic        *interrupt.IC
 	mmu       *mmu.MMU
