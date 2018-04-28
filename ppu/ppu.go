@@ -71,6 +71,9 @@ type PPU struct {
 	vram   [mmu.VRAMSize]byte
 	oamRAM [mmu.OAMRAMSize]byte
 
+	// Current line
+	ly byte
+
 	mode   byte
 	cycles int
 }
@@ -91,9 +94,8 @@ func (p *PPU) Step(cycles int) {
 		return
 	}
 
-	line := p.mmu.ReadByte(LY)
-	p.updateMode(line)
-	p.updateLine(line)
+	p.updateMode()
+	p.updateLine()
 
 	p.cycles += cycles
 }
@@ -109,6 +111,9 @@ func (p *PPU) ReadByte(address uint16) byte {
 	case address >= mmu.OAMRAMStart && address <= mmu.OAMRAMEnd:
 		address -= mmu.OAMRAMStart
 		value = p.oamRAM[address]
+
+	case address == LY:
+		value = p.ly
 	}
 
 	return value
@@ -126,10 +131,10 @@ func (p *PPU) WriteByte(address uint16, value byte) {
 	}
 }
 
-func (p *PPU) updateMode(line byte) {
+func (p *PPU) updateMode() {
 	var mode byte
 
-	if line >= ScreenHeight {
+	if p.ly >= ScreenHeight {
 		mode = VBlank
 	} else if p.cycles >= 0 && p.cycles < 20 {
 		mode = OAMSearch
@@ -148,7 +153,7 @@ func (p *PPU) updateMode(line byte) {
 
 		switch mode {
 		case PixelTransfer:
-			p.transferLine(line)
+			p.transferLine()
 		case VBlank:
 			p.VBlank = true
 			p.ic.Request(interrupt.VBlank)
@@ -156,21 +161,19 @@ func (p *PPU) updateMode(line byte) {
 	}
 }
 
-func (p *PPU) updateLine(line byte) {
+func (p *PPU) updateLine() {
 	if p.cycles >= 114 {
 		p.cycles = 0
 
-		line++
-		if line >= 154 {
-			line = 0
+		p.ly++
+		if p.ly >= 154 {
+			p.ly = 0
 		}
-
-		p.mmu.WriteByte(LY, line)
 	}
 }
 
 // TODO: clean up, rename
-func (p *PPU) transferBGOrWindow(mapMask, line, mapLine byte, mapColumn, start int) {
+func (p *PPU) transferBGOrWindow(mapMask, mapLine byte, mapColumn, start int) {
 	const (
 		tileWidth    = 8
 		tileHeight   = 8
@@ -228,7 +231,7 @@ func (p *PPU) transferBGOrWindow(mapMask, line, mapLine byte, mapColumn, start i
 			colorNumber := high>>(7-byte(j))&1<<1 | low>>(7-byte(j))&1
 			color := Colors[palette[colorNumber]]
 
-			index := Pitch*int(line) + ColorDepth*x
+			index := Pitch*int(p.ly) + ColorDepth*x
 			p.Pixels[index] = color[0]
 			p.Pixels[index+1] = color[1]
 			p.Pixels[index+2] = color[2]
@@ -237,20 +240,20 @@ func (p *PPU) transferBGOrWindow(mapMask, line, mapLine byte, mapColumn, start i
 }
 
 // TODO: clean up
-func (p *PPU) transferLine(line byte) {
+func (p *PPU) transferLine() {
 	if p.getFlag(LCDC, BGEnable) {
-		mapLine := line + p.mmu.ReadByte(SCY)
+		mapLine := p.ly + p.mmu.ReadByte(SCY)
 		mapCol := int(p.mmu.ReadByte(SCX))
 
-		p.transferBGOrWindow(BGTileMapAddress, line, mapLine, mapCol, 0)
+		p.transferBGOrWindow(BGTileMapAddress, mapLine, mapCol, 0)
 	}
 
 	if p.getFlag(LCDC, WindowEnable) {
 		wy := p.mmu.ReadByte(WY)
-		if line >= wy {
-			mapLine := line - wy
+		if p.ly >= wy {
+			mapLine := p.ly - wy
 			start := int(p.mmu.ReadByte(WX) - 7)
-			p.transferBGOrWindow(WindowTileMapAddress, line, mapLine, -start, start)
+			p.transferBGOrWindow(WindowTileMapAddress, mapLine, -start, start)
 		}
 	}
 

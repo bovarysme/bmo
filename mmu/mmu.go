@@ -103,8 +103,11 @@ func (m *MMU) ReadByte(address uint16) byte {
 		value = m.ppu.ReadByte(address)
 
 	case address >= ioStart && address <= ioEnd:
+		// XXX
 		if address == 0xff00 {
 			value = m.joypad.ReadByte(address)
+		} else if address == 0xff44 {
+			value = m.ppu.ReadByte(address)
 		} else {
 			address -= ioStart
 			value = m.io[address]
@@ -141,8 +144,11 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 		m.ppu.WriteByte(address, value)
 
 	case address >= ioStart && address <= ioEnd:
+		// XXX
 		if address == 0xff00 {
 			m.joypad.WriteByte(address, value)
+		} else if address == 0xff44 {
+			m.ppu.WriteByte(address, value)
 		} else {
 			address -= ioStart
 			m.io[address] = value
