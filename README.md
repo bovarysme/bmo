@@ -10,10 +10,13 @@ A Game Boy emulator written in Go.
 ![Blargg's CPU instruction test passed](docs/cpu_instrs.png)
 
 - Interrupt Controller
+- Joypad
 - PPU (background and window rendering, scrolling)
 
 ## Requirements
 
+- Go 1.9 or newer
+- [dep](https://github.com/golang/dep)
 - SDL2 (`libsdl2-dev` on Debian-based distributions)
 
 ## Usage
