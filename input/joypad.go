@@ -1,4 +1,4 @@
-package joypad
+package input
 
 import (
 	"github.com/bovarysme/bmo/interrupt"
@@ -18,8 +18,8 @@ const (
 )
 
 const (
-	directionSelect byte = 1 << (iota + 4)
-	buttonSelect
+	selectDirectionKeys byte = 1 << (4 + iota)
+	selectButtonKeys
 )
 
 type Joypad struct {
@@ -27,27 +27,17 @@ type Joypad struct {
 
 	p1 byte
 
-	direction byte
-	button    byte
+	directionKeysState byte
+	buttonKeysState    byte
 }
 
 func NewJoypad(ic *interrupt.IC) *Joypad {
 	return &Joypad{
 		ic: ic,
 
-		direction: 0xf,
-		button:    0xf,
+		directionKeysState: 0xf,
+		buttonKeysState:    0xf,
 	}
-}
-
-func (j *Joypad) SetKey(mask byte) {
-	state := j.getState(mask)
-	*state &^= 1 << (mask % 4)
-}
-
-func (j *Joypad) ResetKey(mask byte) {
-	state := j.getState(mask)
-	*state |= 1 << (mask % 4)
 }
 
 func (j *Joypad) ReadByte(address uint16) byte {
@@ -63,13 +53,25 @@ func (j *Joypad) WriteByte(address uint16, value byte) {
 	j.p1 = value & 0x30
 }
 
+func (j *Joypad) SetKey(mask byte) {
+	state := j.getState(mask)
+	*state &^= 1 << (mask % 4)
+}
+
+func (j *Joypad) ResetKey(mask byte) {
+	state := j.getState(mask)
+	*state |= 1 << (mask % 4)
+
+	j.ic.Request(interrupt.Joypad)
+}
+
 func (j *Joypad) getSelected() *byte {
 	var selected *byte
 
-	if j.p1&directionSelect == 0 {
-		selected = &j.direction
-	} else if j.p1&buttonSelect == 0 {
-		selected = &j.button
+	if j.p1&selectDirectionKeys == 0 {
+		selected = &j.directionKeysState
+	} else if j.p1&selectButtonKeys == 0 {
+		selected = &j.buttonKeysState
 	}
 
 	return selected
@@ -79,9 +81,9 @@ func (j *Joypad) getState(mask byte) *byte {
 	var state *byte
 
 	if mask <= 3 {
-		state = &j.direction
+		state = &j.directionKeysState
 	} else {
-		state = &j.button
+		state = &j.buttonKeysState
 	}
 
 	return state

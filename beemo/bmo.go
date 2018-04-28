@@ -3,8 +3,8 @@ package beemo
 import (
 	"github.com/bovarysme/bmo/cartridge"
 	"github.com/bovarysme/bmo/cpu"
+	"github.com/bovarysme/bmo/input"
 	"github.com/bovarysme/bmo/interrupt"
-	"github.com/bovarysme/bmo/joypad"
 	"github.com/bovarysme/bmo/mmu"
 	"github.com/bovarysme/bmo/ppu"
 	"github.com/bovarysme/bmo/screen"
@@ -15,11 +15,12 @@ type BMO struct {
 	cartridge mmu.Memory
 	cpu       *cpu.CPU
 	ic        *interrupt.IC
-	joypad    *joypad.Joypad
+	joypad    *input.Joypad
 	mmu       *mmu.MMU
 	ppu       *ppu.PPU
 	timer     *timer.Timer
 
+	keys   input.Keys
 	screen screen.Screen
 }
 
@@ -41,22 +42,25 @@ func NewBMO(bootromPath, romPath string) (*BMO, error) {
 
 	ic := interrupt.NewIC(m)
 
-	j := joypad.NewJoypad(ic)
+	joypad := input.NewJoypad(ic)
 	p := ppu.NewPPU(m, ic)
 
 	// XXX
 	m.LinkPPU(p)
-	m.LinkJoypad(j)
+	m.LinkJoypad(joypad)
+
+	keys := input.NewSDLKeys(joypad)
 
 	return &BMO{
 		cartridge: c,
 		cpu:       cpu.NewCPU(m, ic),
 		ic:        ic,
-		joypad:    j,
+		joypad:    joypad,
 		mmu:       m,
 		ppu:       p,
 		timer:     timer.NewTimer(m, ic),
 
+		keys:   keys,
 		screen: s,
 	}, nil
 }
@@ -85,7 +89,7 @@ func (b *BMO) Step() error {
 			return err
 		}
 
-		joypad.Step(b.joypad)
+		b.keys.Read()
 	}
 
 	b.timer.Step(cycles)
