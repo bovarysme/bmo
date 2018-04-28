@@ -16,7 +16,7 @@ type SDLScreen struct {
 	texture  *sdl.Texture
 }
 
-func NewSDLScreen() (*SDLScreen, error) {
+func NewSDLScreen(screenScale int) (*SDLScreen, error) {
 	err := sdl.Init(sdl.INIT_VIDEO)
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func NewSDLScreen() (*SDLScreen, error) {
 	screen := &SDLScreen{}
 
 	window, err := sdl.CreateWindow("BMO", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		ppu.ScreenWidth, ppu.ScreenHeight, sdl.WINDOW_SHOWN)
+		ppu.ScreenWidth*screenScale, ppu.ScreenHeight*screenScale, sdl.WINDOW_SHOWN)
 	if err != nil {
 		screen.Destroy()
 		return nil, err

@@ -24,8 +24,8 @@ type BMO struct {
 	screen screen.Screen
 }
 
-func NewBMO(bootromPath, romPath string) (*BMO, error) {
-	s, err := screen.NewSDLScreen()
+func NewBMO(bootromPath, romPath string, screenScale int) (*BMO, error) {
+	s, err := screen.NewSDLScreen(screenScale)
 	if err != nil {
 		return nil, err
 	}
