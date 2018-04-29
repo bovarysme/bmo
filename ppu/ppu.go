@@ -110,7 +110,7 @@ func NewPPU(mmu *mmu.MMU, ic *interrupt.IC) *PPU {
 }
 
 func (p *PPU) Step(cycles int) {
-	if !p.getFlag(LCDC, LCDEnable) {
+	if !p.hasFlags(LCDC, LCDEnable) {
 		return
 	}
 
@@ -198,7 +198,7 @@ func (p *PPU) oamSearch() {
 	p.sprites = p.sprites[:0]
 
 	var spriteHeight byte = 8
-	if p.getFlag(LCDC, OBJSize) {
+	if p.hasFlags(LCDC, OBJSize) {
 		spriteHeight = 16
 	}
 
@@ -237,14 +237,14 @@ func (p *PPU) oamSearch() {
 
 // TODO: clean up
 func (p *PPU) transferLine() {
-	if p.getFlag(LCDC, BGEnable) {
+	if p.hasFlags(LCDC, BGEnable) {
 		mapLine := p.ly + p.mmu.ReadByte(SCY)
 		mapCol := int(p.mmu.ReadByte(SCX))
 
 		p.transferBGOrWindow(BGTileMapAddress, mapLine, mapCol, 0)
 	}
 
-	if p.getFlag(LCDC, WindowEnable) {
+	if p.hasFlags(LCDC, WindowEnable) {
 		wy := p.mmu.ReadByte(WY)
 		if p.ly >= wy {
 			mapLine := p.ly - wy
@@ -253,7 +253,7 @@ func (p *PPU) transferLine() {
 		}
 	}
 
-	if p.getFlag(LCDC, OBJEnable) {
+	if p.hasFlags(LCDC, OBJEnable) {
 		p.transferSprite()
 	}
 }
@@ -261,13 +261,13 @@ func (p *PPU) transferLine() {
 // TODO: clean up, rename
 func (p *PPU) transferBGOrWindow(mapMask, mapLine byte, mapColumn, start int) {
 	var dataAddress, mapAddress uint16
-	if p.getFlag(LCDC, BGWindowTileDataAddress) {
+	if p.hasFlags(LCDC, BGWindowTileDataAddress) {
 		dataAddress = 0x8000
 	} else {
 		dataAddress = 0x8800
 	}
 
-	if p.getFlag(LCDC, mapMask) {
+	if p.hasFlags(LCDC, mapMask) {
 		mapAddress = 0x9c00
 	} else {
 		mapAddress = 0x9800
@@ -318,7 +318,7 @@ func (p *PPU) transferBGOrWindow(mapMask, mapLine byte, mapColumn, start int) {
 // TODO: clean up, rename
 func (p *PPU) transferSprite() {
 	var spriteHeight byte = 8
-	if p.getFlag(LCDC, OBJSize) {
+	if p.hasFlags(LCDC, OBJSize) {
 		spriteHeight = 16
 	}
 
@@ -365,7 +365,7 @@ func (p *PPU) transferSprite() {
 }
 
 // TODO: move to the MMU?
-func (p *PPU) getFlag(address uint16, mask byte) bool {
+func (p *PPU) hasFlags(address uint16, mask byte) bool {
 	value := p.mmu.ReadByte(address)
 	return value&mask == mask
 }
