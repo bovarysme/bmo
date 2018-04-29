@@ -150,6 +150,10 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 		} else if address == 0xff44 {
 			m.ppu.WriteByte(address, value)
 		} else {
+			if address == dmaRegisterAddress {
+				m.handleDMA(value)
+			}
+
 			address -= ioStart
 			m.io[address] = value
 		}
@@ -157,10 +161,6 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 	case address >= hramStart && address <= hramEnd:
 		address -= hramStart
 		m.hram[address] = value
-	}
-
-	if address == dmaRegisterAddress {
-		m.handleDMA(value)
 	}
 }
 
