@@ -260,17 +260,14 @@ func (p *PPU) transferLine() {
 
 // TODO: clean up, rename
 func (p *PPU) transferBGOrWindow(mapMask, mapLine byte, mapColumn, start int) {
-	var dataAddress, mapAddress uint16
+	var dataAddress uint16 = 0x8800
 	if p.hasFlags(LCDC, BGWindowTileDataAddress) {
 		dataAddress = 0x8000
-	} else {
-		dataAddress = 0x8800
 	}
 
+	var mapAddress uint16 = 0x9800
 	if p.hasFlags(LCDC, mapMask) {
 		mapAddress = 0x9c00
-	} else {
-		mapAddress = 0x9800
 	}
 
 	// Tiles are 8 lines tall and maps 32 tiles wide (with one tile being
@@ -284,11 +281,9 @@ func (p *PPU) transferBGOrWindow(mapMask, mapLine byte, mapColumn, start int) {
 		var temp byte = byte(i) + byte(mapColumn)
 		address := mapOffset + uint16(temp)/tileWidth
 
-		var tileNumber uint16
+		var tileNumber uint16 = uint16(p.mmu.ReadByte(address))
 		if dataAddress == 0x8800 {
-			tileNumber = uint16(int8(p.mmu.ReadByte(address))) + 128
-		} else {
-			tileNumber = uint16(p.mmu.ReadByte(address))
+			tileNumber = uint16(int8(tileNumber)) + 128
 		}
 
 		// Tile data = 16 bytes
