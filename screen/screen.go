@@ -8,6 +8,7 @@ import (
 
 type Screen interface {
 	Render(pixels []byte) error
+	Shutdown()
 }
 
 type SDLScreen struct {
@@ -27,14 +28,14 @@ func NewSDLScreen(screenScale int) (*SDLScreen, error) {
 	window, err := sdl.CreateWindow("BMO", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
 		ppu.ScreenWidth*screenScale, ppu.ScreenHeight*screenScale, sdl.WINDOW_SHOWN)
 	if err != nil {
-		screen.Destroy()
+		screen.Shutdown()
 		return nil, err
 	}
 	screen.window = window
 
 	renderer, err := sdl.CreateRenderer(window, -1, sdl.RENDERER_ACCELERATED)
 	if err != nil {
-		screen.Destroy()
+		screen.Shutdown()
 		return nil, err
 	}
 	screen.renderer = renderer
@@ -42,14 +43,14 @@ func NewSDLScreen(screenScale int) (*SDLScreen, error) {
 	texture, err := renderer.CreateTexture(sdl.PIXELFORMAT_RGB888, sdl.TEXTUREACCESS_STREAMING,
 		ppu.ScreenWidth, ppu.ScreenHeight)
 	if err != nil {
-		screen.Destroy()
+		screen.Shutdown()
 		return nil, err
 	}
 	screen.texture = texture
 
 	err = renderer.Clear()
 	if err != nil {
-		screen.Destroy()
+		screen.Shutdown()
 		return nil, err
 	}
 
@@ -59,13 +60,13 @@ func NewSDLScreen(screenScale int) (*SDLScreen, error) {
 func (s *SDLScreen) Render(pixels []byte) error {
 	err := s.texture.Update(nil, pixels, ppu.Pitch)
 	if err != nil {
-		s.Destroy()
+		s.Shutdown()
 		return err
 	}
 
 	err = s.renderer.Copy(s.texture, nil, nil)
 	if err != nil {
-		s.Destroy()
+		s.Shutdown()
 		return err
 	}
 
@@ -74,7 +75,7 @@ func (s *SDLScreen) Render(pixels []byte) error {
 	return nil
 }
 
-func (s *SDLScreen) Destroy() {
+func (s *SDLScreen) Shutdown() {
 	if s.texture != nil {
 		s.texture.Destroy()
 	}

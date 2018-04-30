@@ -22,6 +22,8 @@ type BMO struct {
 
 	keys   input.Keys
 	screen screen.Screen
+
+	running bool
 }
 
 func NewBMO(bootromPath, romPath string, screenScale int) (*BMO, error) {
@@ -62,6 +64,8 @@ func NewBMO(bootromPath, romPath string, screenScale int) (*BMO, error) {
 
 		keys:   keys,
 		screen: s,
+
+		running: true,
 	}, nil
 }
 
@@ -89,7 +93,10 @@ func (b *BMO) Step() error {
 			return err
 		}
 
-		b.keys.Read()
+		event := b.keys.Read()
+		if event == input.Quit {
+			b.running = false
+		}
 	}
 
 	b.timer.Step(cycles)
@@ -98,10 +105,14 @@ func (b *BMO) Step() error {
 }
 
 func (b *BMO) Run() error {
-	for {
+	for b.running {
 		err := b.Step()
 		if err != nil {
 			return err
 		}
 	}
+
+	b.screen.Shutdown()
+
+	return nil
 }

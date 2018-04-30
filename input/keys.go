@@ -4,8 +4,15 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
+type Event int
+
+const (
+	None Event = iota
+	Quit
+)
+
 type Keys interface {
-	Read()
+	Read() Event
 }
 
 type SDLKeys struct {
@@ -18,7 +25,7 @@ func NewSDLKeys(joypad *Joypad) Keys {
 	}
 }
 
-func (s *SDLKeys) Read() {
+func (s *SDLKeys) Read() Event {
 	for {
 		event := sdl.PollEvent()
 		if event == nil {
@@ -26,8 +33,15 @@ func (s *SDLKeys) Read() {
 		}
 
 		switch t := event.(type) {
+		case *sdl.QuitEvent:
+			return Quit
 		case *sdl.KeyDownEvent:
-			key, ok := s.getKey(t.Keysym.Sym)
+			sym := t.Keysym.Sym
+			if sym == sdl.K_q {
+				return Quit
+			}
+
+			key, ok := s.getKey(sym)
 			if ok {
 				s.joypad.SetKey(key)
 			}
@@ -38,6 +52,8 @@ func (s *SDLKeys) Read() {
 			}
 		}
 	}
+
+	return None
 }
 
 func (s *SDLKeys) getKey(sym sdl.Keycode) (byte, bool) {
