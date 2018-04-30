@@ -24,6 +24,8 @@ type Timer struct {
 	ic  *interrupt.IC
 	mmu *mmu.MMU
 
+	tac byte
+
 	cycles int
 }
 
@@ -34,15 +36,31 @@ func NewTimer(m *mmu.MMU, ic *interrupt.IC) *Timer {
 	}
 }
 
-func (t *Timer) Step(cycles int) {
-	control := t.mmu.ReadByte(TAC)
+func (t *Timer) ReadByte(address uint16) byte {
+	var value byte
 
-	enabled := control&TimerStart == TimerStart
+	switch address {
+	case TAC:
+		value = t.tac
+	}
+
+	return value
+}
+
+func (t *Timer) WriteByte(address uint16, value byte) {
+	switch address {
+	case TAC:
+		t.tac = value
+	}
+}
+
+func (t *Timer) Step(cycles int) {
+	enabled := t.tac&TimerStart == TimerStart
 	if !enabled {
 		return
 	}
 
-	inputClock := control & InputClockSelect
+	inputClock := t.tac & InputClockSelect
 	freq := freqs[inputClock]
 
 	t.cycles += cycles

@@ -48,6 +48,7 @@ type MMU struct {
 	ic        Memory
 	joypad    Memory
 	ppu       Memory
+	timer     Memory
 
 	wram [wramSize]byte
 	io   [ioSize]byte
@@ -70,6 +71,7 @@ func NewMMU(bootromPath string, cartridge Memory) (*MMU, error) {
 	}, nil
 }
 
+// XXX
 func (m *MMU) LinkIC(ic Memory) {
 	m.ic = ic
 }
@@ -80,6 +82,10 @@ func (m *MMU) LinkJoypad(joypad Memory) {
 
 func (m *MMU) LinkPPU(ppu Memory) {
 	m.ppu = ppu
+}
+
+func (m *MMU) LinkTimer(timer Memory) {
+	m.timer = timer
 }
 
 func (m *MMU) ReadByte(address uint16) byte {
@@ -107,13 +113,16 @@ func (m *MMU) ReadByte(address uint16) byte {
 
 	case address >= ioStart && address <= ioEnd:
 		// XXX
-		if address == 0xff00 {
+		switch address {
+		case 0xff00:
 			value = m.joypad.ReadByte(address)
-		} else if address == 0xff0f {
+		case 0xff07:
+			value = m.timer.ReadByte(address)
+		case 0xff0f:
 			value = m.ic.ReadByte(address)
-		} else if address == 0xff44 {
+		case 0xff44:
 			value = m.ppu.ReadByte(address)
-		} else {
+		default:
 			address -= ioStart
 			value = m.io[address]
 		}
@@ -153,13 +162,16 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 
 	case address >= ioStart && address <= ioEnd:
 		// XXX
-		if address == 0xff00 {
+		switch address {
+		case 0xff00:
 			m.joypad.WriteByte(address, value)
-		} else if address == 0xff0f {
+		case 0xff07:
+			m.timer.WriteByte(address, value)
+		case 0xff0f:
 			m.ic.WriteByte(address, value)
-		} else if address == 0xff44 {
+		case 0xff44:
 			m.ppu.WriteByte(address, value)
-		} else {
+		default:
 			if address == dmaRegisterAddress {
 				m.handleDMA(value)
 			}

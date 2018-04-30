@@ -42,10 +42,13 @@ func NewBMO(bootromPath, romPath string, screenScale int) (*BMO, error) {
 	joypad := input.NewJoypad(ic)
 	p := ppu.NewPPU(m, ic)
 
+	t := timer.NewTimer(m, ic)
+
 	// XXX
 	m.LinkIC(ic)
 	m.LinkJoypad(joypad)
 	m.LinkPPU(p)
+	m.LinkTimer(t)
 
 	keys := input.NewSDLKeys(joypad)
 
@@ -61,7 +64,7 @@ func NewBMO(bootromPath, romPath string, screenScale int) (*BMO, error) {
 		joypad:    joypad,
 		mmu:       m,
 		ppu:       p,
-		timer:     timer.NewTimer(m, ic),
+		timer:     t,
 
 		keys:   keys,
 		screen: s,
