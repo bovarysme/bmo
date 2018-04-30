@@ -1,13 +1,9 @@
 package interrupt
 
-import (
-	"github.com/bovarysme/bmo/mmu"
-)
-
 // Interrupt Controller registers' addresses
 const (
-	interruptEnableAddress  uint16 = 0xffff
-	interruptRequestAddress uint16 = 0xff0f
+	interruptRequest uint16 = 0xff0f
+	interruptEnable  uint16 = 0xffff
 )
 
 // Interrupt Controller registers' masks
@@ -20,24 +16,42 @@ const (
 )
 
 type IC struct {
-	mmu *mmu.MMU
+	ir byte
+	ie byte
 }
 
-func NewIC(mmu *mmu.MMU) *IC {
-	return &IC{
-		mmu: mmu,
+func NewIC() *IC {
+	return &IC{}
+}
+
+func (ic *IC) ReadByte(address uint16) byte {
+	var value byte
+
+	switch address {
+	case interruptRequest:
+		value = ic.ir
+	case interruptEnable:
+		value = ic.ie
+	}
+
+	return value
+}
+
+func (ic *IC) WriteByte(address uint16, value byte) {
+	switch address {
+	case interruptRequest:
+		ic.ir = value
+	case interruptEnable:
+		ic.ie = value
 	}
 }
 
 func (ic *IC) Check() (bool, int) {
-	ie := ic.mmu.ReadByte(interruptEnableAddress)
-	ir := ic.mmu.ReadByte(interruptRequestAddress)
-
 	for i := 0; i < 5; i++ {
 		var mask byte = 1 << byte(i)
 
-		enabled := ie&mask == mask
-		requested := ir&mask == mask
+		enabled := ic.ie&mask == mask
+		requested := ic.ir&mask == mask
 
 		if enabled && requested {
 			return true, i
@@ -48,17 +62,9 @@ func (ic *IC) Check() (bool, int) {
 }
 
 func (ic *IC) Clear(mask byte) {
-	address := interruptRequestAddress
-
-	ir := ic.mmu.ReadByte(address)
-	ir &^= mask
-	ic.mmu.WriteByte(address, ir)
+	ic.ir &^= mask
 }
 
 func (ic *IC) Request(mask byte) {
-	address := interruptRequestAddress
-
-	ir := ic.mmu.ReadByte(address)
-	ir |= mask
-	ic.mmu.WriteByte(address, ir)
+	ic.ir |= mask
 }

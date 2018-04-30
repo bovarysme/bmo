@@ -31,7 +31,7 @@ const (
 	ioSize  = ioEnd - ioStart + 1
 
 	hramStart = 0xff80
-	hramEnd   = 0xffff
+	hramEnd   = 0xfffe
 	hramSize  = hramEnd - hramStart + 1
 )
 
@@ -45,6 +45,7 @@ type Memory interface {
 type MMU struct {
 	bootrom   []byte
 	cartridge Memory
+	ic        Memory
 	joypad    Memory
 	ppu       Memory
 
@@ -69,12 +70,14 @@ func NewMMU(bootromPath string, cartridge Memory) (*MMU, error) {
 	}, nil
 }
 
-// XXX
+func (m *MMU) LinkIC(ic Memory) {
+	m.ic = ic
+}
+
 func (m *MMU) LinkJoypad(joypad Memory) {
 	m.joypad = joypad
 }
 
-// XXX
 func (m *MMU) LinkPPU(ppu Memory) {
 	m.ppu = ppu
 }
@@ -106,6 +109,8 @@ func (m *MMU) ReadByte(address uint16) byte {
 		// XXX
 		if address == 0xff00 {
 			value = m.joypad.ReadByte(address)
+		} else if address == 0xff0f {
+			value = m.ic.ReadByte(address)
 		} else if address == 0xff44 {
 			value = m.ppu.ReadByte(address)
 		} else {
@@ -116,6 +121,9 @@ func (m *MMU) ReadByte(address uint16) byte {
 	case address >= hramStart && address <= hramEnd:
 		address -= hramStart
 		value = m.hram[address]
+
+	case address == 0xffff:
+		value = m.ic.ReadByte(address)
 	}
 
 	return value
@@ -147,6 +155,8 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 		// XXX
 		if address == 0xff00 {
 			m.joypad.WriteByte(address, value)
+		} else if address == 0xff0f {
+			m.ic.WriteByte(address, value)
 		} else if address == 0xff44 {
 			m.ppu.WriteByte(address, value)
 		} else {
@@ -161,6 +171,9 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 	case address >= hramStart && address <= hramEnd:
 		address -= hramStart
 		m.hram[address] = value
+
+	case address == 0xffff:
+		m.ic.WriteByte(address, value)
 	}
 }
 

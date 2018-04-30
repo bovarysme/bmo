@@ -27,11 +27,6 @@ type BMO struct {
 }
 
 func NewBMO(bootromPath, romPath string, screenScale int) (*BMO, error) {
-	s, err := screen.NewSDLScreen(screenScale)
-	if err != nil {
-		return nil, err
-	}
-
 	c, err := cartridge.NewCartridge(romPath)
 	if err != nil {
 		return nil, err
@@ -42,16 +37,22 @@ func NewBMO(bootromPath, romPath string, screenScale int) (*BMO, error) {
 		return nil, err
 	}
 
-	ic := interrupt.NewIC(m)
+	ic := interrupt.NewIC()
 
 	joypad := input.NewJoypad(ic)
 	p := ppu.NewPPU(m, ic)
 
 	// XXX
-	m.LinkPPU(p)
+	m.LinkIC(ic)
 	m.LinkJoypad(joypad)
+	m.LinkPPU(p)
 
 	keys := input.NewSDLKeys(joypad)
+
+	s, err := screen.NewSDLScreen(screenScale)
+	if err != nil {
+		return nil, err
+	}
 
 	return &BMO{
 		cartridge: c,
