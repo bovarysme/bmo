@@ -3,6 +3,8 @@ package mmu
 import (
 	"errors"
 	"io/ioutil"
+
+	"github.com/bovarysme/bmo/interrupt"
 )
 
 const (
@@ -118,7 +120,7 @@ func (m *MMU) ReadByte(address uint16) byte {
 			value = m.joypad.ReadByte(address)
 		case 0xff07:
 			value = m.timer.ReadByte(address)
-		case 0xff0f:
+		case interrupt.IR:
 			value = m.ic.ReadByte(address)
 		case 0xff44:
 			value = m.ppu.ReadByte(address)
@@ -131,7 +133,7 @@ func (m *MMU) ReadByte(address uint16) byte {
 		address -= hramStart
 		value = m.hram[address]
 
-	case address == 0xffff:
+	case address == interrupt.IE:
 		value = m.ic.ReadByte(address)
 	}
 
@@ -167,7 +169,7 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 			m.joypad.WriteByte(address, value)
 		case 0xff07:
 			m.timer.WriteByte(address, value)
-		case 0xff0f:
+		case interrupt.IR:
 			m.ic.WriteByte(address, value)
 		case 0xff44:
 			m.ppu.WriteByte(address, value)
@@ -184,7 +186,7 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 		address -= hramStart
 		m.hram[address] = value
 
-	case address == 0xffff:
+	case address == interrupt.IE:
 		m.ic.WriteByte(address, value)
 	}
 }

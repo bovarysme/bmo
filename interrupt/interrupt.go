@@ -2,8 +2,8 @@ package interrupt
 
 // Interrupt Controller registers' addresses
 const (
-	interruptRequest uint16 = 0xff0f
-	interruptEnable  uint16 = 0xffff
+	IR uint16 = 0xff0f // Interrupt Request
+	IE uint16 = 0xffff // Interrupt Enable
 )
 
 // Interrupt Controller registers' masks
@@ -28,9 +28,9 @@ func (ic *IC) ReadByte(address uint16) byte {
 	var value byte
 
 	switch address {
-	case interruptRequest:
+	case IR:
 		value = ic.ir
-	case interruptEnable:
+	case IE:
 		value = ic.ie
 	}
 
@@ -39,9 +39,9 @@ func (ic *IC) ReadByte(address uint16) byte {
 
 func (ic *IC) WriteByte(address uint16, value byte) {
 	switch address {
-	case interruptRequest:
+	case IR:
 		ic.ir = value
-	case interruptEnable:
+	case IE:
 		ic.ie = value
 	}
 }
