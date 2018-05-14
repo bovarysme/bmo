@@ -16,22 +16,22 @@ const (
 )
 
 var cycles = [...]int{
-	1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1, // 0x0
-	1, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1, // 0x1
-	2, 3, 2, 2, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1, // 0x2
-	2, 3, 2, 2, 3, 3, 3, 1, 2, 2, 2, 2, 1, 1, 2, 1, // 0x3
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 0x4
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 0x5
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 0x6
-	2, 2, 2, 2, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, // 0x7
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 0x8
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 0x9
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 0xa
-	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, // 0xb
-	2, 3, 3, 4, 3, 4, 2, 4, 2, 4, 3, 1, 3, 6, 2, 4, // 0xc
-	2, 3, 3, 0, 3, 4, 2, 4, 2, 4, 3, 0, 3, 0, 2, 4, // 0xd
-	3, 3, 2, 0, 0, 4, 2, 4, 4, 1, 4, 0, 0, 0, 2, 4, // 0xe
-	3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4, // 0xf
+	1, 3, 2, 2, 1, 1, 2, 1, 5, 2, 2, 2, 1, 1, 2, 1,
+	1, 3, 2, 2, 1, 1, 2, 1, 3, 2, 2, 2, 1, 1, 2, 1,
+	2, 3, 2, 2, 1, 1, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1,
+	2, 3, 2, 2, 3, 3, 3, 1, 2, 2, 2, 2, 1, 1, 2, 1,
+	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+	2, 2, 2, 2, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1,
+	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+	1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1,
+	2, 3, 3, 4, 3, 4, 2, 4, 2, 4, 3, 1, 3, 6, 2, 4,
+	2, 3, 3, 0, 3, 4, 2, 4, 2, 4, 3, 0, 3, 0, 2, 4,
+	3, 3, 2, 0, 0, 4, 2, 4, 4, 1, 4, 0, 0, 0, 2, 4,
+	3, 3, 2, 1, 0, 4, 2, 4, 3, 2, 4, 1, 0, 0, 2, 4,
 }
 
 var prefixCycles = [...]int{
@@ -421,13 +421,13 @@ func (c *CPU) decodePrefix() error {
 		c.srl(operand)
 	case opcode >= 0x40 && opcode <= 0x7f:
 		bit := c.decodeBit(opcode)
-		c.bit(bit, operand)
+		c.bit(operand, bit)
 	case opcode >= 0x80 && opcode <= 0xbf:
 		bit := c.decodeBit(opcode)
-		c.res(bit, operand)
+		c.res(operand, bit)
 	case opcode >= 0xc0 && opcode <= 0xff:
 		bit := c.decodeBit(opcode)
-		c.set(bit, operand)
+		c.set(operand, bit)
 	default:
 		return &UnknownPrefixOpcodeError{opcode: opcode}
 	}
@@ -458,39 +458,43 @@ func (c *CPU) decodeBit(opcode byte) byte {
 }
 
 func (c *CPU) decodeCondition(opcode byte) bool {
+	var condition bool
+
 	switch opcode >> 3 & 0x3 {
 	case 0:
-		return !c.hasFlags(zero)
+		condition = !c.hasFlags(zero)
 	case 1:
-		return c.hasFlags(zero)
+		condition = c.hasFlags(zero)
 	case 2:
-		return !c.hasFlags(carry)
+		condition = !c.hasFlags(carry)
 	case 3:
-		return c.hasFlags(carry)
+		condition = c.hasFlags(carry)
 	}
 
-	return false
+	return condition
 }
 
 func (c *CPU) decodeRegister(code byte) *byte {
+	var register *byte
+
 	switch code {
 	case 0:
-		return &c.b
+		register = &c.b
 	case 1:
-		return &c.c
+		register = &c.c
 	case 2:
-		return &c.d
+		register = &c.d
 	case 3:
-		return &c.e
+		register = &c.e
 	case 4:
-		return &c.h
+		register = &c.h
 	case 5:
-		return &c.l
+		register = &c.l
 	case 7:
-		return &c.a
+		register = &c.a
 	}
 
-	return nil
+	return register
 }
 
 func (c *CPU) decodeDestRegister(opcode byte) *byte {
@@ -660,6 +664,7 @@ func (c *CPU) rlca() {
 	c.a = c.a<<1 | bit
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if bit == 1 {
 		c.setFlags(carry)
 	}
@@ -704,6 +709,7 @@ func (c *CPU) rrca() {
 	c.a = bit<<7 | c.a>>1
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if bit == 1 {
 		c.setFlags(carry)
 	}
@@ -718,6 +724,7 @@ func (c *CPU) rla() {
 	c.a = c.a<<1 | c.getFlags(carry)
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if bit == 1 {
 		c.setFlags(carry)
 	}
@@ -733,6 +740,7 @@ func (c *CPU) rra() {
 	c.a = c.getFlags(carry)<<7 | c.a>>1
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if bit == 1 {
 		c.setFlags(carry)
 	}
@@ -802,7 +810,7 @@ func (c *CPU) ldi() {
 	c.setHL(address)
 }
 
-// Takes the ones' complement of the contents of register A.
+// cpl takes the ones' complement of the contents of register A.
 func (c *CPU) cpl() {
 	c.a = ^c.a
 
@@ -818,7 +826,7 @@ func (c *CPU) std() {
 	c.setHL(address)
 }
 
-// Sets the carry flag.
+// scf sets the carry flag.
 func (c *CPU) scf() {
 	c.resetFlags(substract | halfCarry)
 	c.setFlags(carry)
@@ -833,7 +841,7 @@ func (c *CPU) ldd() {
 	c.setHL(address)
 }
 
-// Flips the carry flag.
+// ccf flips the carry flag.
 func (c *CPU) ccf() {
 	c.resetFlags(substract | halfCarry)
 	c.f ^= carry
@@ -938,6 +946,7 @@ func (c *CPU) xor(value byte) {
 	c.a ^= value
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if c.a == 0 {
 		c.setFlags(zero)
 	}
@@ -947,6 +956,7 @@ func (c *CPU) or(value byte) {
 	c.a |= value
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if c.a == 0 {
 		c.setFlags(zero)
 	}
@@ -979,7 +989,7 @@ func (c *CPU) pop(high, low *byte) {
 	*high = byte(value >> 8)
 	*low = byte(value & 0xff)
 
-	// Ensures the lower bits of register F are zeros.
+	// Ensure the lower bits of register F are zeros.
 	if low == &c.f {
 		c.f &= 0xf0
 	}
@@ -1118,6 +1128,7 @@ func (c *CPU) rlc(operand Operand) {
 	operand.Set(value)
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if value == 0 {
 		c.setFlags(zero)
 	}
@@ -1135,6 +1146,7 @@ func (c *CPU) rrc(operand Operand) {
 	operand.Set(value)
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if value == 0 {
 		c.setFlags(zero)
 	}
@@ -1152,6 +1164,7 @@ func (c *CPU) rl(operand Operand) {
 	operand.Set(value)
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if value == 0 {
 		c.setFlags(zero)
 	}
@@ -1169,6 +1182,7 @@ func (c *CPU) rr(operand Operand) {
 	operand.Set(value)
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if value == 0 {
 		c.setFlags(zero)
 	}
@@ -1186,6 +1200,7 @@ func (c *CPU) sla(operand Operand) {
 	operand.Set(value)
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if value == 0 {
 		c.setFlags(zero)
 	}
@@ -1204,6 +1219,7 @@ func (c *CPU) sra(operand Operand) {
 	operand.Set(value)
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if value == 0 {
 		c.setFlags(zero)
 	}
@@ -1221,6 +1237,7 @@ func (c *CPU) swap(operand Operand) {
 	operand.Set(value)
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if value == 0 {
 		c.setFlags(zero)
 	}
@@ -1235,6 +1252,7 @@ func (c *CPU) srl(operand Operand) {
 	operand.Set(value)
 
 	c.resetFlags(zero | substract | halfCarry | carry)
+
 	if value == 0 {
 		c.setFlags(zero)
 	}
@@ -1243,7 +1261,7 @@ func (c *CPU) srl(operand Operand) {
 	}
 }
 
-func (c *CPU) bit(bit byte, operand Operand) {
+func (c *CPU) bit(operand Operand, bit byte) {
 	c.resetFlags(substract)
 	c.setFlags(halfCarry)
 
@@ -1256,12 +1274,12 @@ func (c *CPU) bit(bit byte, operand Operand) {
 	}
 }
 
-func (c *CPU) res(bit byte, operand Operand) {
+func (c *CPU) res(operand Operand, bit byte) {
 	value := operand.Get() &^ (1 << bit)
 	operand.Set(value)
 }
 
-func (c *CPU) set(bit byte, operand Operand) {
+func (c *CPU) set(operand Operand, bit byte) {
 	value := operand.Get() | 1<<bit
 	operand.Set(value)
 }
