@@ -4,7 +4,7 @@ A Game Boy emulator written in Go.
 
 ## Progress
 
-- Cartridges (ROM only, MBC1)
+- Cartridges (ROM only, MBC1, MBC3 with no timer)
 - CPU (passes Blargg's CPU instruction test)
 
 ![Blargg's CPU instruction test passed](docs/cpu_instrs.png)

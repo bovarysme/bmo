@@ -7,13 +7,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-
-	"github.com/bovarysme/bmo/mmu"
 )
 
 const (
 	headerStart = 0x134
 	headerEnd   = 0X150
+)
+
+const (
+	romBanking byte = iota
+	ramBanking
 )
 
 type UnknownCartridgeTypeError struct {
@@ -50,7 +53,13 @@ func NewHeader(data []byte) (*Header, error) {
 	return header, nil
 }
 
-func NewCartridge(romPath string) (mmu.Memory, error) {
+type Cartridge interface {
+	ReadByte(address uint16) byte
+	WriteByte(address uint16, value byte)
+	Save() error
+}
+
+func NewCartridge(romPath string) (Cartridge, error) {
 	rom, err := ioutil.ReadFile(romPath)
 	if err != nil {
 		return nil, err
@@ -67,7 +76,7 @@ func NewCartridge(romPath string) (mmu.Memory, error) {
 	}
 	log.Printf("ROM type: %#x\n", header.Type)
 
-	var cartridge mmu.Memory
+	var cartridge Cartridge
 
 	switch header.Type {
 	case 0x00:
@@ -76,6 +85,8 @@ func NewCartridge(romPath string) (mmu.Memory, error) {
 		}
 	case 0x01, 0x02, 0x03:
 		cartridge = NewMBC1(rom, header.RAMSize)
+	case 0x11, 0x12, 0x13:
+		cartridge = NewMBC3(rom, header.RAMSize)
 	default:
 		return nil, &UnknownCartridgeTypeError{cartridgeType: header.Type}
 	}
@@ -93,6 +104,10 @@ func (r *ROM) ReadByte(address uint16) byte {
 
 func (r *ROM) WriteByte(address uint16, value byte) {
 
+}
+
+func (r *ROM) Save() error {
+	return nil
 }
 
 func getRAMInfo(ramType byte) (int, int) {

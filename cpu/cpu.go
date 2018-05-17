@@ -445,8 +445,8 @@ func (c *CPU) popStack() uint16 {
 }
 
 func (c *CPU) pushStack(value uint16) {
-	c.mmu.WriteWord(c.sp-2, value)
 	c.sp -= 2
+	c.mmu.WriteWord(c.sp, value)
 }
 
 func (c *CPU) decodeAddress(opcode byte) uint16 {

@@ -12,7 +12,7 @@ import (
 )
 
 type BMO struct {
-	cartridge mmu.Memory
+	cartridge cartridge.Cartridge
 	cpu       *cpu.CPU
 	ic        *interrupt.IC
 	joypad    *input.Joypad
