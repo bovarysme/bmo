@@ -191,6 +191,14 @@ func (p *PPU) updateLine() {
 		if p.ly >= 154 {
 			p.ly = 0
 		}
+
+		stat := p.mmu.ReadByte(STAT)
+		lyc := p.mmu.ReadByte(LYC)
+
+		var mask byte = 1 << 6
+		if stat&mask == mask && lyc == p.ly {
+			p.ic.Request(interrupt.LCDSTAT)
+		}
 	}
 }
 
