@@ -11,7 +11,10 @@ A Game Boy emulator written in Go.
 
 - Interrupt Controller
 - Joypad
-- PPU (background and window rendering, scrolling)
+- PPU (background, window and sprites rendering, scrolling)
+
+![The Legend of Zelda: Link's Awakening](docs/zelda.png)
+![Pokémon Blue Version](docs/pokemon.png)
 
 ## Requirements
 
