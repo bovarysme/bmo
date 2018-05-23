@@ -116,6 +116,7 @@ func (b *BMO) Run() error {
 		}
 	}
 
+	b.cartridge.Save()
 	b.screen.Shutdown()
 
 	return nil

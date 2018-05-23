@@ -1,6 +1,10 @@
 package cartridge
 
 type MBC3 struct {
+	cartType byte
+
+	// Path to the ROM file
+	path    string
 	rom     []byte
 	romBank byte
 
@@ -11,12 +15,15 @@ type MBC3 struct {
 	bankingMode byte
 }
 
-func NewMBC3(rom []byte, ramType byte) *MBC3 {
+func NewMBC3(cartType byte, path string, rom []byte, ram [][]byte) *MBC3 {
 	return &MBC3{
+		cartType: cartType,
+
+		path:    path,
 		rom:     rom,
 		romBank: 1,
 
-		ram: initRAM(ramType),
+		ram: ram,
 	}
 }
 
@@ -60,7 +67,11 @@ func (m *MBC3) WriteByte(address uint16, value byte) {
 }
 
 func (m *MBC3) Save() error {
-	// TODO
+	var err error
 
-	return nil
+	if hasBattery(m.cartType) {
+		err = saveRAM(m.path, m.ram)
+	}
+
+	return err
 }

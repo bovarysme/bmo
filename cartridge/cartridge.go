@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 const (
@@ -76,6 +79,14 @@ func NewCartridge(romPath string) (Cartridge, error) {
 	}
 	log.Printf("ROM type: %#x\n", header.Type)
 
+	ram := initRAM(header.RAMSize)
+	if hasBattery(header.Type) {
+		err = loadRAM(romPath, ram)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	var cartridge Cartridge
 
 	switch header.Type {
@@ -84,9 +95,9 @@ func NewCartridge(romPath string) (Cartridge, error) {
 			rom: rom,
 		}
 	case 0x01, 0x02, 0x03:
-		cartridge = NewMBC1(rom, header.RAMSize)
+		cartridge = NewMBC1(header.Type, romPath, rom, ram)
 	case 0x11, 0x12, 0x13:
-		cartridge = NewMBC3(rom, header.RAMSize)
+		cartridge = NewMBC3(header.Type, romPath, rom, ram)
 	default:
 		return nil, &UnknownCartridgeTypeError{cartridgeType: header.Type}
 	}
@@ -94,20 +105,13 @@ func NewCartridge(romPath string) (Cartridge, error) {
 	return cartridge, nil
 }
 
-type ROM struct {
-	rom []byte
-}
+func hasBattery(cartType byte) bool {
+	switch cartType {
+	case 0x03, 0x13:
+		return true
+	}
 
-func (r *ROM) ReadByte(address uint16) byte {
-	return r.rom[address]
-}
-
-func (r *ROM) WriteByte(address uint16, value byte) {
-
-}
-
-func (r *ROM) Save() error {
-	return nil
+	return false
 }
 
 func getRAMInfo(ramType byte) (int, int) {
@@ -131,6 +135,13 @@ func getRAMInfo(ramType byte) (int, int) {
 	return banks, size
 }
 
+func getRAMPath(path string) string {
+	ext := filepath.Ext(path)
+	ramPath := strings.TrimSuffix(path, ext) + ".bmo"
+
+	return ramPath
+}
+
 func initRAM(ramType byte) [][]byte {
 	banks, size := getRAMInfo(ramType)
 	if size == 0 {
@@ -143,4 +154,51 @@ func initRAM(ramType byte) [][]byte {
 	}
 
 	return ram
+}
+
+func loadRAM(path string, ram [][]byte) error {
+	ramPath := getRAMPath(path)
+
+	_, err := os.Stat(ramPath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+
+	file, err := os.Open(ramPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for _, bank := range ram {
+		_, err = file.Read(bank)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Printf("Loaded external RAM from '%s'\n", ramPath)
+
+	return nil
+}
+
+func saveRAM(path string, ram [][]byte) error {
+	ramPath := getRAMPath(path)
+
+	file, err := os.Create(ramPath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	for _, bank := range ram {
+		_, err = file.Write(bank)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Printf("Saved external RAM to '%s'\n", ramPath)
+
+	return nil
 }
