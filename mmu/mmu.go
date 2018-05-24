@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 
+	"github.com/bovarysme/bmo/input"
 	"github.com/bovarysme/bmo/interrupt"
 	"github.com/bovarysme/bmo/timer"
 )
@@ -115,9 +116,8 @@ func (m *MMU) ReadByte(address uint16) byte {
 		value = m.ppu.ReadByte(address)
 
 	case address >= ioStart && address <= ioEnd:
-		// XXX
 		switch address {
-		case 0xff00:
+		case input.P1:
 			value = m.joypad.ReadByte(address)
 		case timer.DIV, timer.TIMA, timer.TMA, timer.TAC:
 			value = m.timer.ReadByte(address)
@@ -164,9 +164,8 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 		m.ppu.WriteByte(address, value)
 
 	case address >= ioStart && address <= ioEnd:
-		// XXX
 		switch address {
-		case 0xff00:
+		case input.P1:
 			m.joypad.WriteByte(address, value)
 		case timer.DIV, timer.TIMA, timer.TMA, timer.TAC:
 			m.timer.WriteByte(address, value)

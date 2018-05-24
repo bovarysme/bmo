@@ -41,8 +41,13 @@ func NewJoypad(ic *interrupt.IC) *Joypad {
 }
 
 func (j *Joypad) ReadByte(address uint16) byte {
+	if address != P1 {
+		return 0
+	}
+
 	selected := j.getSelected()
 	if selected != nil {
+		j.p1 &^= 0xf
 		j.p1 |= *selected
 	}
 
@@ -50,7 +55,9 @@ func (j *Joypad) ReadByte(address uint16) byte {
 }
 
 func (j *Joypad) WriteByte(address uint16, value byte) {
-	j.p1 = value & 0x30
+	if address == P1 {
+		j.p1 = value & 0x30
+	}
 }
 
 func (j *Joypad) SetKey(mask byte) {
