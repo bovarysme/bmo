@@ -2,7 +2,6 @@ package timer
 
 import (
 	"github.com/bovarysme/bmo/interrupt"
-	"github.com/bovarysme/bmo/mmu"
 )
 
 const (
@@ -21,18 +20,19 @@ const (
 var freqs = [4]int{256, 4, 16, 64}
 
 type Timer struct {
-	ic  *interrupt.IC
-	mmu *mmu.MMU
+	ic *interrupt.IC
 
-	tac byte
+	div  byte
+	tima byte
+	tma  byte
+	tac  byte
 
 	cycles int
 }
 
-func NewTimer(m *mmu.MMU, ic *interrupt.IC) *Timer {
+func NewTimer(ic *interrupt.IC) *Timer {
 	return &Timer{
-		ic:  ic,
-		mmu: m,
+		ic: ic,
 	}
 }
 
@@ -40,6 +40,12 @@ func (t *Timer) ReadByte(address uint16) byte {
 	var value byte
 
 	switch address {
+	case DIV:
+		value = t.div
+	case TIMA:
+		value = t.tima
+	case TMA:
+		value = t.tma
 	case TAC:
 		value = t.tac
 	}
@@ -49,6 +55,12 @@ func (t *Timer) ReadByte(address uint16) byte {
 
 func (t *Timer) WriteByte(address uint16, value byte) {
 	switch address {
+	case DIV:
+		t.div = value
+	case TIMA:
+		t.tima = value
+	case TMA:
+		t.tma = value
 	case TAC:
 		t.tac = value
 	}
@@ -67,15 +79,11 @@ func (t *Timer) Step(cycles int) {
 	if t.cycles >= freq {
 		t.cycles -= freq
 
-		counter := t.mmu.ReadByte(TIMA)
-		counter++
-		if counter == 0 {
-			modulo := t.mmu.ReadByte(TMA)
-			counter = modulo
+		t.tima++
+		if t.tima == 0 {
+			t.tima = t.tma
 
 			t.ic.Request(interrupt.Timer)
 		}
-
-		t.mmu.WriteByte(TIMA, counter)
 	}
 }

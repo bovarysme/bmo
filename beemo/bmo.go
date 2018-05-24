@@ -38,11 +38,9 @@ func NewBMO(bootromPath, romPath string, screenScale int) (*BMO, error) {
 	}
 
 	ic := interrupt.NewIC()
-
 	joypad := input.NewJoypad(ic)
 	p := ppu.NewPPU(m, ic)
-
-	t := timer.NewTimer(m, ic)
+	t := timer.NewTimer(ic)
 
 	// XXX
 	m.LinkIC(ic)

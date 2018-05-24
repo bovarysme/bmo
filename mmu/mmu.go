@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/bovarysme/bmo/interrupt"
+	"github.com/bovarysme/bmo/timer"
 )
 
 const (
@@ -118,7 +119,7 @@ func (m *MMU) ReadByte(address uint16) byte {
 		switch address {
 		case 0xff00:
 			value = m.joypad.ReadByte(address)
-		case 0xff07:
+		case timer.DIV, timer.TIMA, timer.TMA, timer.TAC:
 			value = m.timer.ReadByte(address)
 		case interrupt.IR:
 			value = m.ic.ReadByte(address)
@@ -167,7 +168,7 @@ func (m *MMU) WriteByte(address uint16, value byte) {
 		switch address {
 		case 0xff00:
 			m.joypad.WriteByte(address, value)
-		case 0xff07:
+		case timer.DIV, timer.TIMA, timer.TMA, timer.TAC:
 			m.timer.WriteByte(address, value)
 		case interrupt.IR:
 			m.ic.WriteByte(address, value)
